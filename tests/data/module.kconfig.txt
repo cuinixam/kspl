@@ -1,0 +1,31 @@
+config MODULE_CFG_A
+    string "some menu 1 string"
+    default "abcd"
+
+menu "Module menu 1"
+    config MODULE_L1_CFG_A
+        string "some menu 1 string"
+        default "abcd"
+    config MODULE_L1_CFG_B
+        bool "some menu 1 boolean"
+        default n
+    config MODULE_L1_CFG_C
+        int "some menu 1 integer"
+        default 13
+    menu "Module menu 1.1"
+        config MODULE_L11_CFG_A
+            string "some menu 1.1 string"
+            default "abcd"
+        config MODULE_L11_CFG_B
+            bool "some menu 1.1 boolean"
+            default n
+    endmenu
+    menu "Module menu 1.2"
+        config MODULE_L12_CFG_A
+            string "some menu 1.2 string"
+            default "abcd"
+        config MODULE_L12_CFG_B
+            bool "some menu 1.2 boolean"
+            default n
+    endmenu
+endmenu

@@ -1,0 +1,53 @@
+mainmenu "Main Menu"
+
+menu "Included Config"
+    source "module.kconfig.txt"
+endmenu
+
+menu "Menu 1"
+    config L1_CFG_A
+        string "some menu 1 string"
+        default "abcd"
+    config L1_CFG_B
+        bool "some menu 1 boolean"
+        default n
+    config L1_CFG_C
+        int "some menu 1 integer"
+        default 13
+    menu "Menu 1.1"
+        config L11_CFG_A
+            string "some menu 1.1 string"
+            default "abcd"
+        config L11_CFG_B
+            bool "some menu 1.1 boolean"
+            default n
+    endmenu
+    menu "Menu 1.2"
+        config L12_CFG_A
+            string "some menu 1.2 string"
+            default "abcd"
+        config L12_CFG_B
+            bool "some menu 1.2 boolean"
+            default y
+    endmenu
+endmenu
+
+menu "Menu 2"
+    config L2_CFG_B
+        bool "some menu 2 boolean"
+        default n
+    config L2_CFG_C
+        int "some menu 2 integer"
+        default 13
+endmenu
+
+menu "Menu 3"
+    menu "Menu 3.1"
+        config L31_CFG_A
+            string "some menu 3.1 string"
+            default "abcd"
+        config L31_CFG_B
+            bool "some menu 3.1 boolean"
+            default y
+    endmenu
+endmenu
