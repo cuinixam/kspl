@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kspl"
-version = "0.0.0"
+version = "0.1.0"
 description = "KConfig GUI for Software Product Lines with multiple variants."
 authors = ["Cuinixam <cuinixam@me.com>"]
 license = "MIT"
