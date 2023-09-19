@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from tkinter import simpledialog, ttk
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import customtkinter
 from mashumaro import DataClassDictMixin
@@ -48,6 +48,13 @@ class CTkView(View):
         pass
 
 
+@dataclass
+class EditEventData:
+    variant: VariantViewData
+    config_name: str
+    new_value: int | str | bool
+
+
 class MainView(CTkView):
     def __init__(
         self,
@@ -58,6 +65,12 @@ class MainView(CTkView):
         self.event_manager = event_manager
         self.elements = elements
         self.variants = variants
+
+        self.logger = logger.bind()
+        self.edit_event_data: Optional[EditEventData] = None
+        self.edit_event_trigger = self.event_manager.create_event_trigger(
+            KSplEvents.EDIT
+        )
         self.root = customtkinter.CTk()
 
         # Configure the main window
@@ -177,7 +190,7 @@ class MainView(CTkView):
             return
 
         selected_item = current_selection[0]
-        elem_name = self.tree_view_items_mapping[selected_item]
+        selected_config_name = self.tree_view_items_mapping[selected_item]
 
         variant_idx_str = self.tree.identify_column(event.x)  # Get the clicked column
         variant_idx = (
@@ -188,7 +201,7 @@ class MainView(CTkView):
             return
 
         selected_variant = self.variants[variant_idx]
-        selected_value = selected_variant.config_dict[elem_name]
+        selected_value = selected_variant.config_dict.get(selected_config_name, None)
 
         if selected_value is not None:
             new_value = selected_value
@@ -209,14 +222,30 @@ class MainView(CTkView):
                 if tmp_str_value is not None:
                     new_value = tmp_str_value
 
-            selected_variant.config_dict[elem_name] = new_value
+            # Check if the value has changed
+            if new_value != selected_value:
+                selected_variant.config_dict[selected_config_name] = new_value
+                # Update the Treeview
+                values = list(
+                    self.tree.item(selected_item, "values")
+                )  # Get the current values of the selected item
+                values[variant_idx] = self.prepare_value_to_be_displayed(new_value)
+                self.tree.item(selected_item, values=values)
+                # Trigger the EDIT event
+                self.create_edit_event_trigger(
+                    selected_variant, selected_config_name, new_value
+                )
 
-            # Update the Treeview
-            values = list(
-                self.tree.item(selected_item, "values")
-            )  # Get the current values of the selected item
-            values[variant_idx] = self.prepare_value_to_be_displayed(new_value)
-            self.tree.item(selected_item, values=values)
+    def create_edit_event_trigger(
+        self, variant: VariantViewData, config_name: str, new_value: int | str | bool
+    ) -> None:
+        self.edit_event_data = EditEventData(variant, config_name, new_value)
+        self.edit_event_trigger()
+
+    def pop_edit_event_data(self) -> Optional[EditEventData]:
+        result = self.edit_event_data
+        self.edit_event_data = None
+        return result
 
 
 @dataclass
@@ -289,7 +318,6 @@ class KSPL(Presenter):
     def __init__(self, event_manager: EventManager, project_dir: Path) -> None:
         self.event_manager = event_manager
         self.event_manager.subscribe(KSplEvents.EDIT, self.edit)
-        self.counter = 0
         self.logger = logger.bind()
         self.kconfig_data = SPLKConfigData(project_dir)
         self.view = MainView(
@@ -299,8 +327,14 @@ class KSPL(Presenter):
         )
 
     def edit(self) -> None:
-        self.counter += 1
-        self.logger.info(f"Counter: {self.counter}")
+        edit_event_data = self.view.pop_edit_event_data()
+        if edit_event_data is None:
+            self.logger.debug("No edit event data")
+        else:
+            self.logger.debug(
+                "Edit event received: "
+                f"'{edit_event_data.variant.name}:{edit_event_data.config_name} = {edit_event_data.new_value}'"
+            )
 
     def run(self) -> None:
         self.view.mainloop()
