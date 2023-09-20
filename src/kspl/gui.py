@@ -304,7 +304,7 @@ class SPLKConfigData:
         return variants
 
     def _get_variant_name(self, file: Path) -> str:
-        return file.relative_to(self.project_root_dir / "variants").parent.name
+        return file.relative_to(self.project_root_dir / "variants").parent.as_posix()
 
     def _search_variant_config_file(self, project_dir: Path) -> List[Path]:
         """
