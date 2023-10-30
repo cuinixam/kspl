@@ -87,14 +87,22 @@ class KConfig:
         """
         if not k_config_model_file.is_file():
             raise FileNotFoundError(f"File {k_config_model_file} does not exist.")
-        with working_directory(k_config_root_directory or k_config_model_file.parent):
+        self.k_config_root_directory = (
+            k_config_root_directory or k_config_model_file.parent
+        )
+        with working_directory(self.k_config_root_directory):
             self._config = kconfiglib.Kconfig(k_config_model_file.absolute().as_posix())
+        self.parsed_files: List[Path] = self._collect_parsed_files()
         if k_config_file:
             if not k_config_file.is_file():
                 raise FileNotFoundError(f"File {k_config_file} does not exist.")
             self._config.load_config(k_config_file, replace=False)
+            self.parsed_files.append(k_config_file)
         self.elements = self._collect_elements()
         self._elements_dict = {element.id: element for element in self.elements}
+
+    def get_parsed_files(self) -> List[Path]:
+        return self.parsed_files
 
     def collect_config_data(self) -> ConfigurationData:
         """- creates the ConfigurationData from the KConfig configuration"""
@@ -211,3 +219,15 @@ class KConfig:
 
     def find_element(self, name: str) -> Optional[EditableConfigElement]:
         return self._elements_dict.get(name, None)
+
+    def _collect_parsed_files(self) -> List[Path]:
+        """Collects all parsed files from the KConfig instance and returns them as a list of absolute paths"""
+        parsed_files: List[Path] = []
+        for file in self._config.kconfig_filenames:
+            file_path = Path(file)
+            parsed_files.append(
+                file_path
+                if file_path.is_absolute()
+                else self.k_config_root_directory / file_path
+            )
+        return parsed_files

@@ -41,7 +41,9 @@ def test_create_configuration_data(tmp_path: Path) -> None:
         default n
     """
     )
-    config = KConfig(feature_model_file).collect_config_data()
+    kconfig = KConfig(feature_model_file)
+    assert set(kconfig.get_parsed_files()) == {feature_model_file}
+    config = kconfig.collect_config_data()
     assert config.elements[0].type == ConfigElementType.STRING
     assert config.elements[0].value == "John Smith"
     assert config.elements[1].type == ConfigElementType.BOOL
@@ -282,7 +284,9 @@ def test_define_tristate_choices(tmp_path: Path) -> None:
         ),
     )
 
-    config = KConfig(feature_model_file, user_config).collect_config_data()
+    kconfig = KConfig(feature_model_file, user_config)
+    assert set(kconfig.get_parsed_files()) == {feature_model_file, user_config}
+    config = kconfig.collect_config_data()
     assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "APP_VERSION_1", TriState.Y),
         ConfigElement(ConfigElementType.BOOL, "APP_VERSION_2", TriState.N),
@@ -309,9 +313,9 @@ def test_config_including_other_config(tmp_path: Path) -> None:
     source "common/common.txt"
     """,
     )
-    file = tmp_path / "common/common.txt"
-    file.parent.mkdir(parents=True)
-    file.write_text(
+    common_file = tmp_path / "common/common.txt"
+    common_file.parent.mkdir(parents=True)
+    common_file.write_text(
         """
     config COMMON_BOOL
         bool "You can select COMMON_BOOL"
@@ -319,9 +323,9 @@ def test_config_including_other_config(tmp_path: Path) -> None:
     source "new/new.txt"
     """
     )
-    file = tmp_path / "new/new.txt"
-    file.parent.mkdir(parents=True)
-    file.write_text(
+    new_file = tmp_path / "new/new.txt"
+    new_file.parent.mkdir(parents=True)
+    new_file.write_text(
         """
     config NEW_BOOL
         bool "You can select NEW_BOOL"
@@ -339,7 +343,14 @@ def test_config_including_other_config(tmp_path: Path) -> None:
     """
         ),
     )
-    config = KConfig(feature_model_file, user_config).collect_config_data()
+    kconfig = KConfig(feature_model_file, user_config)
+    assert set(kconfig.get_parsed_files()) == {
+        feature_model_file,
+        common_file,
+        new_file,
+        user_config,
+    }
+    config = kconfig.collect_config_data()
     assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "FIRST_BOOL", TriState.Y),
         ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude"),
@@ -384,7 +395,9 @@ def test_config_including_other_configs_based_on_env_vars(tmp_path: Path) -> Non
         ),
     )
     os.environ["COMMON_PATH"] = "common"
-    config = KConfig(feature_model_file, user_config).collect_config_data()
+    kconfig = KConfig(feature_model_file, user_config)
+    assert set(kconfig.get_parsed_files()) == {feature_model_file, file, user_config}
+    config = kconfig.collect_config_data()
     assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "FIRST_BOOL", TriState.Y),
         ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude"),
