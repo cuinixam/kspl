@@ -2,7 +2,7 @@ import tkinter
 from abc import abstractmethod
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import auto
 from pathlib import Path
 from tkinter import simpledialog, ttk
 from typing import Any, Dict, List, Optional
@@ -15,19 +15,7 @@ from py_app_dev.mvp.event_manager import EventID, EventManager
 from py_app_dev.mvp.presenter import Presenter
 from py_app_dev.mvp.view import View
 
-from kspl.kconfig import KConfig
-
-
-class ConfigElementType(Enum):
-    MENU = auto()
-    CONFIG = auto()
-
-
-@dataclass
-class ConfigElementViewData:
-    name: str
-    level: int
-    type: ConfigElementType
+from kspl.kconfig import ConfigElementType, EditableConfigElement, KConfig, TriState
 
 
 @dataclass
@@ -35,7 +23,7 @@ class VariantViewData:
     """A variant is a set of configuration values for a KConfig model."""
 
     name: str
-    config_dict: Dict[str, int | str | bool]
+    config_dict: Dict[str, Any]
 
 
 class KSplEvents(EventID):
@@ -51,24 +39,25 @@ class CTkView(View):
 @dataclass
 class EditEventData:
     variant: VariantViewData
-    config_name: str
-    new_value: int | str | bool
+    config_element_name: str
+    new_value: Any
 
 
 class MainView(CTkView):
     def __init__(
         self,
         event_manager: EventManager,
-        elements: List[ConfigElementViewData],
+        elements: List[EditableConfigElement],
         variants: List[VariantViewData],
     ) -> None:
         self.event_manager = event_manager
         self.elements = elements
+        self.elements_dict = {elem.name: elem for elem in elements}
         self.variants = variants
 
         self.logger = logger.bind()
         self.edit_event_data: Optional[EditEventData] = None
-        self.edit_event_trigger = self.event_manager.create_event_trigger(
+        self.trigger_edit_event = self.event_manager.create_event_trigger(
             KSplEvents.EDIT
         )
         self.root = customtkinter.CTk()
@@ -108,7 +97,11 @@ class MainView(CTkView):
 
         style = ttk.Style()
         style.configure(
-            "mystyle.Treeview", highlightthickness=0, bd=0, font=("Calibri", 14)
+            "mystyle.Treeview",
+            highlightthickness=0,
+            bd=0,
+            font=("Calibri", 14),
+            rowheight=30,
         )  # Modify the font of the body
         style.configure(
             "mystyle.Treeview.Heading", font=("Calibri", 14, "bold")
@@ -163,24 +156,35 @@ class MainView(CTkView):
         return mapping
 
     def collect_values_for_element(
-        self, element: ConfigElementViewData
+        self, element: EditableConfigElement
     ) -> List[int | str]:
         return (
             [
                 self.prepare_value_to_be_displayed(
-                    variant.config_dict.get(element.name, None)
+                    element.type, variant.config_dict.get(element.name, None)
                 )
                 for variant in self.variants
             ]
-            if element.type == ConfigElementType.CONFIG
+            if not element.is_menu
             else []
         )
 
-    def prepare_value_to_be_displayed(self, value: Any) -> str:
+    def prepare_value_to_be_displayed(
+        self, element_type: ConfigElementType, value: Any
+    ) -> str:
+        """
+        UNKNOWN  - N/A
+        BOOL     - ✅ ⛔
+        TRISTATE - str
+        STRING   - str
+        INT      - str
+        HEX      - str
+        MENU     - N/A
+        """
         if value is None:
             return "N/A"
-        elif isinstance(value, bool):
-            return "✅" if value else "⛔"
+        elif element_type == ConfigElementType.BOOL:
+            return "✅" if value == TriState.Y else "⛔"
         else:
             return str(value)
 
@@ -190,7 +194,7 @@ class MainView(CTkView):
             return
 
         selected_item = current_selection[0]
-        selected_config_name = self.tree_view_items_mapping[selected_item]
+        selected_element_name = self.tree_view_items_mapping[selected_item]
 
         variant_idx_str = self.tree.identify_column(event.x)  # Get the clicked column
         variant_idx = (
@@ -201,46 +205,47 @@ class MainView(CTkView):
             return
 
         selected_variant = self.variants[variant_idx]
-        selected_value = selected_variant.config_dict.get(selected_config_name, None)
+        selected_element = self.elements_dict[selected_element_name]
+        selected_element_value = selected_variant.config_dict.get(selected_element_name)
 
-        if selected_value is not None:
-            new_value = selected_value
-            if isinstance(selected_value, bool):
+        # TODO: Consider the actual configuration type (ConfigElementType)
+        if not selected_element.is_menu:
+            new_value: Any = None
+            if selected_element.type == ConfigElementType.BOOL:
                 # Toggle the boolean value
-                new_value = not selected_value
-            elif isinstance(selected_value, int):
+                new_value = (
+                    TriState.N if selected_element_value == TriState.Y else TriState.Y
+                )
+            elif selected_element.type == ConfigElementType.INT:
                 tmp_int_value = simpledialog.askinteger(
-                    "Enter new value", "Enter new value", initialvalue=selected_value
+                    "Enter new value",
+                    "Enter new value",
+                    initialvalue=selected_element_value,
                 )
                 if tmp_int_value is not None:
                     new_value = tmp_int_value
-            elif isinstance(selected_value, str):
+            else:
                 # Prompt the user to enter a new string value using messagebox
                 tmp_str_value = simpledialog.askstring(
-                    "Enter new value", "Enter new value", initialvalue=selected_value
+                    "Enter new value",
+                    "Enter new value",
+                    initialvalue=str(selected_element_value),
                 )
                 if tmp_str_value is not None:
                     new_value = tmp_str_value
 
             # Check if the value has changed
-            if new_value != selected_value:
-                selected_variant.config_dict[selected_config_name] = new_value
-                # Update the Treeview
-                values = list(
-                    self.tree.item(selected_item, "values")
-                )  # Get the current values of the selected item
-                values[variant_idx] = self.prepare_value_to_be_displayed(new_value)
-                self.tree.item(selected_item, values=values)
+            if new_value:
                 # Trigger the EDIT event
                 self.create_edit_event_trigger(
-                    selected_variant, selected_config_name, new_value
+                    selected_variant, selected_element_name, new_value
                 )
 
     def create_edit_event_trigger(
-        self, variant: VariantViewData, config_name: str, new_value: int | str | bool
+        self, variant: VariantViewData, element_name: str, new_value: Any
     ) -> None:
-        self.edit_event_data = EditEventData(variant, config_name, new_value)
-        self.edit_event_trigger()
+        self.edit_event_data = EditEventData(variant, element_name, new_value)
+        self.trigger_edit_event()
 
     def pop_edit_event_data(self) -> Optional[EditEventData]:
         result = self.edit_event_data
@@ -252,6 +257,9 @@ class MainView(CTkView):
 class VariantData:
     name: str
     config: KConfig
+
+    def find_element(self, element_name: str) -> Optional[EditableConfigElement]:
+        return self.config.find_element(element_name)
 
 
 class SPLKConfigData:
@@ -268,24 +276,14 @@ class SPLKConfigData:
             ]
         else:
             self.variant_configs = [VariantData("Default", self.model)]
+        self.logger = logger.bind()
 
     @property
     def kconfig_model_file(self) -> Path:
         return self.project_root_dir / "KConfig"
 
-    def get_elements(self) -> List[ConfigElementViewData]:
-        elements = []
-        for elem in self.model.elements:
-            elements.append(
-                ConfigElementViewData(
-                    elem.name,
-                    elem.level,
-                    ConfigElementType.MENU
-                    if elem.is_menu
-                    else ConfigElementType.CONFIG,
-                )
-            )
-        return elements
+    def get_elements(self) -> List[EditableConfigElement]:
+        return self.model.elements
 
     def get_variants(self) -> List[VariantViewData]:
         variants = []
@@ -295,7 +293,7 @@ class SPLKConfigData:
                 VariantViewData(
                     variant.name,
                     {
-                        config_elem.name: config_elem.raw_value
+                        config_elem.name: config_elem.value
                         for config_elem in variant.config.elements
                         if not config_elem.is_menu
                     },
@@ -313,6 +311,12 @@ class SPLKConfigData:
         """
         return list((project_dir / "variants").glob("**/config.txt"))
 
+    def find_variant_config(self, variant_name: str) -> Optional[VariantData]:
+        for variant in self.variant_configs:
+            if variant.name == variant_name:
+                return variant
+        return None
+
 
 class KSPL(Presenter):
     def __init__(self, event_manager: EventManager, project_dir: Path) -> None:
@@ -329,12 +333,26 @@ class KSPL(Presenter):
     def edit(self) -> None:
         edit_event_data = self.view.pop_edit_event_data()
         if edit_event_data is None:
-            self.logger.debug("No edit event data")
+            self.logger.error("Edit event received but event data is missing!")
         else:
             self.logger.debug(
                 "Edit event received: "
-                f"'{edit_event_data.variant.name}:{edit_event_data.config_name} = {edit_event_data.new_value}'"
+                f"'{edit_event_data.variant.name}:{edit_event_data.config_element_name} = {edit_event_data.new_value}'"
             )
+            # Update the variant configuration data with the new value
+            variant = self.kconfig_data.find_variant_config(
+                edit_event_data.variant.name
+            )
+            if variant is None:
+                raise ValueError(
+                    f"Could not find variant '{edit_event_data.variant.name}'"
+                )
+            config_element = variant.find_element(edit_event_data.config_element_name)
+            if config_element is None:
+                raise ValueError(
+                    f"Could not find config element '{edit_event_data.config_element_name}'"
+                )
+            config_element.value = edit_event_data.new_value
 
     def run(self) -> None:
         self.view.mainloop()

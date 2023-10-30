@@ -73,7 +73,7 @@ def test_header_file_written_when_changed(tmp_path: Path) -> None:
         )
     )
     header_file = tmp_path / "my_file.h"
-    config = KConfig(feature_model_file, user_config).config
+    config = KConfig(feature_model_file, user_config).collect_config_data()
 
     writer = HeaderWriter(header_file)
     writer.write(config)

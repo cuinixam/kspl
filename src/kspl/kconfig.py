@@ -36,17 +36,6 @@ class ConfigElement:
     def is_menu(self) -> bool:
         return self.type == ConfigElementType.MENU
 
-    @property
-    def raw_value(self) -> int | str | bool:
-        value = self.value
-        if self.type == ConfigElementType.BOOL:
-            value = self.value == TriState.Y
-        elif self.type == ConfigElementType.TRISTATE:
-            value = str(self.value)
-        elif self.type == ConfigElementType.HEX:
-            value = hex(self.value)
-        return value
-
 
 @dataclass
 class EditableConfigElement(ConfigElement):
@@ -105,9 +94,9 @@ class KConfig:
                 raise FileNotFoundError(f"File {k_config_file} does not exist.")
             self._config.load_config(k_config_file, replace=False)
         self.elements = self._collect_elements()
-        self.config = self._create_config_data()
+        self._elements_dict = {element.id: element for element in self.elements}
 
-    def _create_config_data(self) -> ConfigurationData:
+    def collect_config_data(self) -> ConfigurationData:
         """- creates the ConfigurationData from the KConfig configuration"""
         elements = self.elements
         elements_dict = {element.id: element for element in elements}
@@ -219,3 +208,6 @@ class KConfig:
 
         create_elements_tree(self._config.top_node, elements)
         return elements
+
+    def find_element(self, name: str) -> Optional[EditableConfigElement]:
+        return self._elements_dict.get(name, None)

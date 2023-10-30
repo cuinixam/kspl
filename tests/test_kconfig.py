@@ -41,15 +41,15 @@ def test_create_configuration_data(tmp_path: Path) -> None:
         default n
     """
     )
-    iut = KConfig(feature_model_file)
-    assert iut.config.elements[0].type == ConfigElementType.STRING
-    assert iut.config.elements[0].value == "John Smith"
-    assert iut.config.elements[1].type == ConfigElementType.BOOL
-    assert iut.config.elements[1].name == "STATUS"
-    assert iut.config.elements[1].value == TriState.Y
-    assert iut.config.elements[2].type == ConfigElementType.BOOL
-    assert iut.config.elements[2].name == "NOT_SET"
-    assert iut.config.elements[2].value == TriState.N
+    config = KConfig(feature_model_file).collect_config_data()
+    assert config.elements[0].type == ConfigElementType.STRING
+    assert config.elements[0].value == "John Smith"
+    assert config.elements[1].type == ConfigElementType.BOOL
+    assert config.elements[1].name == "STATUS"
+    assert config.elements[1].value == TriState.Y
+    assert config.elements[2].type == ConfigElementType.BOOL
+    assert config.elements[2].name == "NOT_SET"
+    assert config.elements[2].value == TriState.N
 
 
 def test_create_configuration_data_with_variables(tmp_path: Path) -> None:
@@ -66,11 +66,11 @@ def test_create_configuration_data_with_variables(tmp_path: Path) -> None:
     )
     # define MY_ENV_VAR environment variable
     os.environ["MY_ENV_VAR"] = "MY_ENV_VAR_VALUE"
-    iut = KConfig(feature_model_file)
-    assert iut.config.elements[0].value == "John Smith"
-    assert iut.config.elements[1].type == ConfigElementType.STRING
+    config = KConfig(feature_model_file).collect_config_data()
+    assert config.elements[0].value == "John Smith"
+    assert config.elements[1].type == ConfigElementType.STRING
     assert (
-        iut.config.elements[1].value
+        config.elements[1].value
         == "Variable: John Smith, environment variable: MY_ENV_VAR_VALUE"
     )
 
@@ -104,8 +104,8 @@ def test_boolean_without_description(tmp_path: Path) -> None:
         ),
     )
 
-    iut = KConfig(feature_model_file, user_config)
-    assert iut.config.elements == [
+    config = KConfig(feature_model_file, user_config).collect_config_data()
+    assert config.elements == [
         ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude")
     ]
 
@@ -136,8 +136,8 @@ def test_boolean_with_description(tmp_path: Path) -> None:
         ),
     )
 
-    iut = KConfig(feature_model_file, user_config)
-    assert iut.config.elements == [
+    config = KConfig(feature_model_file, user_config).collect_config_data()
+    assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "FIRST_BOOL", TriState.Y),
         ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude"),
     ]
@@ -160,8 +160,8 @@ def test_hex(tmp_path: Path) -> None:
     """,
     )
 
-    iut = KConfig(feature_model_file)
-    assert iut.config.elements == [ConfigElement(ConfigElementType.HEX, "MY_HEX", 0xFF)]
+    config = KConfig(feature_model_file).collect_config_data()
+    assert config.elements == [ConfigElement(ConfigElementType.HEX, "MY_HEX", 0xFF)]
 
 
 def test_define_boolean_choices(tmp_path: Path) -> None:
@@ -201,8 +201,8 @@ def test_define_boolean_choices(tmp_path: Path) -> None:
         ),
     )
 
-    iut = KConfig(feature_model_file, user_config)
-    assert iut.config.elements == [
+    config = KConfig(feature_model_file, user_config).collect_config_data()
+    assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "APP_VERSION_1", TriState.Y),
         ConfigElement(ConfigElementType.BOOL, "APP_VERSION_2", TriState.N),
     ]
@@ -242,8 +242,8 @@ def test_define_string_choices(tmp_path: Path) -> None:
         ),
     )
 
-    iut = KConfig(feature_model_file, user_config)
-    assert iut.config.elements == [
+    config = KConfig(feature_model_file, user_config).collect_config_data()
+    assert config.elements == [
         ConfigElement(ConfigElementType.STRING, "APP_VERSION_1", "VERSION_NEW"),
         ConfigElement(ConfigElementType.STRING, "APP_VERSION_2", ""),
     ]
@@ -282,8 +282,8 @@ def test_define_tristate_choices(tmp_path: Path) -> None:
         ),
     )
 
-    iut = KConfig(feature_model_file, user_config)
-    assert iut.config.elements == [
+    config = KConfig(feature_model_file, user_config).collect_config_data()
+    assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "APP_VERSION_1", TriState.Y),
         ConfigElement(ConfigElementType.BOOL, "APP_VERSION_2", TriState.N),
     ]
@@ -339,8 +339,8 @@ def test_config_including_other_config(tmp_path: Path) -> None:
     """
         ),
     )
-    iut = KConfig(feature_model_file, user_config)
-    assert iut.config.elements == [
+    config = KConfig(feature_model_file, user_config).collect_config_data()
+    assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "FIRST_BOOL", TriState.Y),
         ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude"),
         ConfigElement(ConfigElementType.BOOL, "COMMON_BOOL", TriState.Y),
@@ -384,8 +384,8 @@ def test_config_including_other_configs_based_on_env_vars(tmp_path: Path) -> Non
         ),
     )
     os.environ["COMMON_PATH"] = "common"
-    iut = KConfig(feature_model_file, user_config)
-    assert iut.config.elements == [
+    config = KConfig(feature_model_file, user_config).collect_config_data()
+    assert config.elements == [
         ConfigElement(ConfigElementType.BOOL, "FIRST_BOOL", TriState.Y),
         ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude"),
         ConfigElement(ConfigElementType.BOOL, "COMMON_BOOL", TriState.Y),

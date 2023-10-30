@@ -180,7 +180,7 @@ class GenerateCommand(Command):
         cmd_config = GenerateCommandConfig.from_namespace(args)
         config = KConfig(
             cmd_config.kconfig_model_file, cmd_config.kconfig_config_file
-        ).config
+        ).collect_config_data()
 
         if cmd_config.out_header_file:
             HeaderWriter(cmd_config.out_header_file).write(config)
