@@ -77,7 +77,8 @@ class MainView(CTkView):
         # Keep track of the mapping between the tree view items and the config elements
         self.tree_view_items_mapping = self.populate_tree_view()
         self.tree.pack(fill="both", expand=True)
-        self.tree.bind("<Double-1>", self.double_click_handler)
+        # TODO: make the tree view editable
+        # self.tree.bind("<Double-1>", self.double_click_handler)
 
         # ========================================================
         # put all together
