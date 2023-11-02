@@ -7,6 +7,7 @@ from py_app_dev.core.exceptions import UserNotificationException
 from py_app_dev.core.logging import logger, setup_logger
 
 from kspl import __version__
+from kspl.edit import EditCommand
 from kspl.generate import GenerateCommand
 from kspl.gui import GuiCommand
 
@@ -19,7 +20,7 @@ def do_run() -> None:
         "-v", "--version", action="version", version=f"%(prog)s {__version__}"
     )
     builder = CommandLineHandlerBuilder(parser)
-    builder.add_commands([GuiCommand(), GenerateCommand()])
+    builder.add_commands([GuiCommand(), GenerateCommand(), EditCommand()])
     handler = builder.create()
     handler.run(argv[1:])
 

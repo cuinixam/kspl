@@ -8,6 +8,7 @@ from typing import Any, Generator, List, Optional
 
 import kconfiglib
 from kconfiglib import MenuNode
+from guiconfig import menuconfig
 
 
 class TriState(Enum):
@@ -91,13 +92,14 @@ class KConfig:
             k_config_root_directory or k_config_model_file.parent
         )
         with working_directory(self.k_config_root_directory):
-            self._config = kconfiglib.Kconfig(k_config_model_file.absolute().as_posix())
+            self.config = kconfiglib.Kconfig(k_config_model_file.absolute().as_posix())
         self.parsed_files: List[Path] = self._collect_parsed_files()
-        if k_config_file:
-            if not k_config_file.is_file():
-                raise FileNotFoundError(f"File {k_config_file} does not exist.")
-            self._config.load_config(k_config_file, replace=False)
-            self.parsed_files.append(k_config_file)
+        self.k_config_file: Optional[Path] = k_config_file
+        if self.k_config_file:
+            if not self.k_config_file.is_file():
+                raise FileNotFoundError(f"File {self.k_config_file} does not exist.")
+            self.config.load_config(self.k_config_file, replace=False)
+            self.parsed_files.append(self.k_config_file)
         self.elements = self._collect_elements()
         self._elements_dict = {element.id: element for element in self.elements}
 
@@ -131,6 +133,13 @@ class KConfig:
                 if elem.type != ConfigElementType.MENU
             ]
         )
+
+    def menu_config(self) -> None:
+        if self.k_config_file:
+            # The environment variable KCONFIG_CONFIG is used by kconfiglib to determine
+            # the configuration file to load.
+            os.environ["KCONFIG_CONFIG"] = self.k_config_file.absolute().as_posix()
+        menuconfig(self.config)
 
     def _collect_elements(self) -> List[EditableConfigElement]:
         elements: List[EditableConfigElement] = []
@@ -214,7 +223,7 @@ class KConfig:
                 if node.list and not isinstance(node.item, kconfiglib.Symbol):
                     create_elements_tree(node, collected_nodes, level + 1)
 
-        create_elements_tree(self._config.top_node, elements)
+        create_elements_tree(self.config.top_node, elements)
         return elements
 
     def find_element(self, name: str) -> Optional[EditableConfigElement]:
@@ -223,7 +232,7 @@ class KConfig:
     def _collect_parsed_files(self) -> List[Path]:
         """Collects all parsed files from the KConfig instance and returns them as a list of absolute paths"""
         parsed_files: List[Path] = []
-        for file in self._config.kconfig_filenames:
+        for file in self.config.kconfig_filenames:
             file_path = Path(file)
             parsed_files.append(
                 file_path
