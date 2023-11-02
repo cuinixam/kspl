@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.0 (2023-11-02)
+
+### Feature
+
+* Rename gui command to view ([`6d68516`](https://github.com/cuinixam/kspl/commit/6d685169208f31f7b6d0600905c3a7f332e6c739))
+* Add edit command ([`63130ce`](https://github.com/cuinixam/kspl/commit/63130ce7077ba714b6da02518e168f5ac3ed39ec))
+
+### Breaking
+
+* rename gui command to view ([`6d68516`](https://github.com/cuinixam/kspl/commit/6d685169208f31f7b6d0600905c3a7f332e6c739))
+
 ## v0.2.0 (2023-10-30)
 
 ### Feature
