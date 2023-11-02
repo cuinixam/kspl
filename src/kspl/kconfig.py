@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any, Generator, List, Optional
 
 import kconfiglib
-from kconfiglib import MenuNode
 from guiconfig import menuconfig
+from kconfiglib import MenuNode
 
 
 class TriState(Enum):

@@ -376,7 +376,7 @@ class GuiCommandConfig(DataClassDictMixin):
 
 class GuiCommand(Command):
     def __init__(self) -> None:
-        super().__init__("gui", "Start the GUI for SPL configuration.")
+        super().__init__("view", "View all SPL KConfig configurations.")
         self.logger = logger.bind()
 
     @time_it("Build")

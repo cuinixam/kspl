@@ -24,7 +24,7 @@ class EditCommandConfig(DataClassDictMixin):
 
 class EditCommand(Command):
     def __init__(self) -> None:
-        super().__init__("edit", "Edit KConfig for specified variant.")
+        super().__init__("edit", "Edit KConfig configuration.")
         self.logger = logger.bind()
 
     @time_it("Build")
