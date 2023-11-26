@@ -15,15 +15,8 @@ from py_app_dev.mvp.event_manager import EventID, EventManager
 from py_app_dev.mvp.presenter import Presenter
 from py_app_dev.mvp.view import View
 
-from kspl.kconfig import ConfigElementType, EditableConfigElement, KConfig, TriState
-
-
-@dataclass
-class VariantViewData:
-    """A variant is a set of configuration values for a KConfig model."""
-
-    name: str
-    config_dict: Dict[str, Any]
+from kspl.config_slurper import SPLKConfigData, VariantViewData
+from kspl.kconfig import ConfigElementType, EditableConfigElement, TriState
 
 
 class KSplEvents(EventID):
@@ -252,71 +245,6 @@ class MainView(CTkView):
         result = self.edit_event_data
         self.edit_event_data = None
         return result
-
-
-@dataclass
-class VariantData:
-    name: str
-    config: KConfig
-
-    def find_element(self, element_name: str) -> Optional[EditableConfigElement]:
-        return self.config.find_element(element_name)
-
-
-class SPLKConfigData:
-    def __init__(self, project_root_dir: Path) -> None:
-        self.project_root_dir = project_root_dir.absolute()
-        variant_config_files = self._search_variant_config_file(self.project_root_dir)
-        self.model = KConfig(self.kconfig_model_file)
-        if variant_config_files:
-            self.variant_configs: List[VariantData] = [
-                VariantData(
-                    self._get_variant_name(file), KConfig(self.kconfig_model_file, file)
-                )
-                for file in variant_config_files
-            ]
-        else:
-            self.variant_configs = [VariantData("Default", self.model)]
-        self.logger = logger.bind()
-
-    @property
-    def kconfig_model_file(self) -> Path:
-        return self.project_root_dir / "KConfig"
-
-    def get_elements(self) -> List[EditableConfigElement]:
-        return self.model.elements
-
-    def get_variants(self) -> List[VariantViewData]:
-        variants = []
-
-        for variant in self.variant_configs:
-            variants.append(
-                VariantViewData(
-                    variant.name,
-                    {
-                        config_elem.name: config_elem.value
-                        for config_elem in variant.config.elements
-                        if not config_elem.is_menu
-                    },
-                )
-            )
-        return variants
-
-    def _get_variant_name(self, file: Path) -> str:
-        return file.relative_to(self.project_root_dir / "variants").parent.as_posix()
-
-    def _search_variant_config_file(self, project_dir: Path) -> List[Path]:
-        """
-        Finds all files called 'config.txt' in the variants directory
-        and returns a list with their paths.
-        """
-        return list((project_dir / "variants").glob("**/config.txt"))
-
-    def find_variant_config(self, variant_name: str) -> Optional[VariantData]:
-        for variant in self.variant_configs:
-            if variant.name == variant_name:
-                return variant
-        return None
 
 
 class KSPL(Presenter):

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from kspl.gui import SPLKConfigData
+from kspl.config_slurper import SPLKConfigData
 
 
 def test_spl_kconfig_data():
