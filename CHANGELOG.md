@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2023-11-26)
+
+### Feature
+
+* Auto detect existing variants ([`4d00158`](https://github.com/cuinixam/kspl/commit/4d001580b34680078d439546e31834162ab5cce4))
+
 ## v1.0.0 (2023-11-02)
 
 ### Feature
