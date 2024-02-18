@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.1 (2024-02-18)
+
+### Fix
+
+* Update py-app-dev dependency ([`35b73de`](https://github.com/cuinixam/kspl/commit/35b73de7a22a8371fad12eb76451abe49881872e))
+
 ## v1.1.0 (2023-11-26)
 
 ### Feature
