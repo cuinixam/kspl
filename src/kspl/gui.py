@@ -111,6 +111,27 @@ class MainView(CTkView):
             "mystyle.Treeview.Heading", font=("Calibri", 14, "bold")
         )  # Modify the font of the headings
 
+        # Add a separator to the right of the heading
+        MainView.vline_img = tkinter.PhotoImage(
+            "vline", data="R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs="
+        )
+        style.element_create("vline", "image", "vline")
+        style.layout(
+            "mystyle.Treeview.Heading",
+            [
+                (
+                    "mystyle.Treeview.heading.cell",
+                    {
+                        "sticky": "nswe",
+                        "children": [
+                            ("mystyle.Treeview.heading.text", {"sticky": "we"}),
+                            ("vline", {"side": "right", "sticky": "ns"}),
+                        ],
+                    },
+                )
+            ],
+        )
+
         # create a Treeview widget
         config_treeview = ttk.Treeview(
             frame,
@@ -206,7 +227,7 @@ class MainView(CTkView):
     def adjust_column_width(self) -> None:
         """Adjust the column widths to fit the header text."""
         heading_font = font.Font(font=("Calibri", 14, "bold"))
-        padding = 30
+        padding = 60
         for col in self.tree["columns"]:
             text = self.tree.heading(col, "text")
             width = heading_font.measure(text) + padding
