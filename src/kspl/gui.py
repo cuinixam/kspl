@@ -206,7 +206,7 @@ class MainView(CTkView):
     def adjust_column_width(self) -> None:
         """Adjust the column widths to fit the header text."""
         heading_font = font.Font(font=("Calibri", 14, "bold"))
-        padding = 25
+        padding = 30
         for col in self.tree["columns"]:
             text = self.tree.heading(col, "text")
             width = heading_font.measure(text) + padding
@@ -246,7 +246,7 @@ class MainView(CTkView):
         # Highlight the new column header
         original_text = self.header_texts.get(column_name)
         if original_text:
-            self.tree.heading(column_name, text=f"-> {original_text} <-")
+            self.tree.heading(column_name, text=f"✅{original_text}")
         self.selected_column_id = column_name
 
     def double_click_handler(self, event: tkinter.Event) -> None:  # type: ignore
