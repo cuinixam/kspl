@@ -65,11 +65,15 @@ class MainView(CTkView):
         self.tree = self.create_tree_view(tabview.add("Configuration"))
         self.tree["columns"] = tuple(variant.name for variant in self.variants)
         self.tree.heading("#0", text="Configuration")
+        self.header_texts: Dict[str, str] = {}
         for variant in self.variants:
             self.tree.heading(variant.name, text=variant.name)
+            self.header_texts[variant.name] = variant.name
         # Keep track of the mapping between the tree view items and the config elements
         self.tree_view_items_mapping = self.populate_tree_view()
         self.tree.pack(fill="both", expand=True)
+        self.selected_column_id: Optional[str] = None
+        self.tree.bind("<Button-1>", self.on_tree_click)
         # TODO: make the tree view editable
         # self.tree.bind("<Double-1>", self.double_click_handler)
 
@@ -90,6 +94,13 @@ class MainView(CTkView):
         columns = [var.name for var in self.variants]
 
         style = ttk.Style()
+        # From: https://stackoverflow.com/a/56684731
+        # This gives the selection a transparent look
+        style.map(
+            "mystyle.Treeview",
+            background=[("selected", "#a6d5f7")],
+            foreground=[("selected", "black")],
+        )
         style.configure(
             "mystyle.Treeview",
             highlightthickness=0,
@@ -181,6 +192,38 @@ class MainView(CTkView):
             return "✅" if value == TriState.Y else "⛔"
         else:
             return str(value)
+
+    def on_tree_click(self, event: tkinter.Event) -> None:
+        """Handle click events on the treeview to highlight the column header."""
+        column_id_str = self.tree.identify_column(event.x)
+        if not column_id_str or column_id_str == "#0":
+            # Click was on the tree part or outside columns, so reset if anything was selected
+            if self.selected_column_id:
+                original_text = self.header_texts.get(self.selected_column_id)
+                if original_text:
+                    self.tree.heading(self.selected_column_id, text=original_text)
+                self.selected_column_id = None
+            return
+
+        col_idx = int(column_id_str.replace("#", "")) - 1
+        if col_idx < 0:
+            return
+        column_name = self.tree["columns"][col_idx]
+
+        if column_name == self.selected_column_id:
+            return
+
+        # Reset the previously selected column header
+        if self.selected_column_id:
+            original_text = self.header_texts.get(self.selected_column_id)
+            if original_text:
+                self.tree.heading(self.selected_column_id, text=original_text)
+
+        # Highlight the new column header
+        original_text = self.header_texts.get(column_name)
+        if original_text:
+            self.tree.heading(column_name, text=f"-> {original_text} <-")
+        self.selected_column_id = column_name
 
     def double_click_handler(self, event: tkinter.Event) -> None:  # type: ignore
         current_selection = self.tree.selection()
