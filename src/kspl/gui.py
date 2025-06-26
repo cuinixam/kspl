@@ -4,7 +4,7 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
 from enum import auto
 from pathlib import Path
-from tkinter import simpledialog, ttk
+from tkinter import font, simpledialog, ttk
 from typing import Any, Dict, List, Optional
 
 import customtkinter
@@ -71,7 +71,7 @@ class MainView(CTkView):
             self.header_texts[variant.name] = variant.name
         # Keep track of the mapping between the tree view items and the config elements
         self.tree_view_items_mapping = self.populate_tree_view()
-        self.tree.pack(fill="both", expand=True)
+        self.adjust_column_width()
         self.selected_column_id: Optional[str] = None
         self.tree.bind("<Button-1>", self.on_tree_click)
         # TODO: make the tree view editable
@@ -87,8 +87,7 @@ class MainView(CTkView):
         self.root.mainloop()
 
     def create_tree_view(self, frame: customtkinter.CTkFrame) -> ttk.Treeview:
-        frame.grid_rowconfigure(0, weight=10)
-        frame.grid_rowconfigure(1, weight=1)
+        frame.grid_rowconfigure(0, weight=1)
         frame.grid_columnconfigure(0, weight=1)
 
         columns = [var.name for var in self.variants]
@@ -119,7 +118,18 @@ class MainView(CTkView):
             show="tree headings",
             style="mystyle.Treeview",
         )
-        config_treeview.grid(row=0, column=0, sticky="nsew")
+
+        scrollbar_y = ttk.Scrollbar(frame, command=config_treeview.yview)
+        scrollbar_x = ttk.Scrollbar(
+            frame, command=config_treeview.xview, orient=tkinter.HORIZONTAL
+        )
+        config_treeview.config(
+            xscrollcommand=scrollbar_x.set, yscrollcommand=scrollbar_y.set
+        )
+        scrollbar_y.pack(fill=tkinter.Y, side=tkinter.RIGHT)
+        scrollbar_x.pack(fill=tkinter.X, side=tkinter.BOTTOM)
+        config_treeview.pack(fill=tkinter.BOTH, expand=True)
+
         return config_treeview
 
     def populate_tree_view(self) -> Dict[str, str]:
@@ -192,6 +202,20 @@ class MainView(CTkView):
             return "✅" if value == TriState.Y else "⛔"
         else:
             return str(value)
+
+    def adjust_column_width(self) -> None:
+        """Adjust the column widths to fit the header text."""
+        heading_font = font.Font(font=("Calibri", 14, "bold"))
+        padding = 25
+        for col in self.tree["columns"]:
+            text = self.tree.heading(col, "text")
+            width = heading_font.measure(text) + padding
+            # Set the minimum width of the column to the width of the text.
+            self.tree.column(col, minwidth=width, width=width, stretch=False)
+        # First column (#0)
+        text = self.tree.heading("#0", "text")
+        width = heading_font.measure(text) + padding
+        self.tree.column("#0", minwidth=width, width=width, stretch=False)
 
     def on_tree_click(self, event: tkinter.Event) -> None:
         """Handle click events on the treeview to highlight the column header."""
