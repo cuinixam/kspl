@@ -47,33 +47,6 @@
       }
     },
     {
-      "label": "generate docs",
-      "command": ".venv/bin/poetry run sphinx-build ${workspaceFolder}/docs ${workspaceFolder}/docs/_build",
-      "windows": {
-        "command": ".venv/Scripts/poetry run sphinx-build ${workspaceFolder}/docs ${workspaceFolder}/docs/_build"
-      },
-      "type": "shell",
-      "presentation": {
-        "reveal": "always"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      }
-    },
-    {
-      "label": "open docs index.html",
-      "command": "${workspaceFolder}/docs/_build/index.html",
-      "type": "shell",
-      "presentation": {
-        "reveal": "always"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      }
-    },
-    {
       "label": "run pre-commit checks",
       "command": ".venv/bin/poetry run pre-commit run --all-files",
       "windows": {
