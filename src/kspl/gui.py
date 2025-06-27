@@ -73,9 +73,9 @@ class MainView(CTkView):
         self.column_select_button.pack(side="left", padx=5)
 
         # ========================================================
-        # create tabview and populate with frames
-        tabview = customtkinter.CTkTabview(self.root)
-        self.tree = self.create_tree_view(tabview.add("Configuration"))
+        # create main content frame
+        main_frame = customtkinter.CTkFrame(self.root)
+        self.tree = self.create_tree_view(main_frame)
         self.tree["columns"] = tuple(variant.name for variant in self.variants)
         self.tree["displaycolumns"] = self.visible_columns
         self.tree.heading("#0", text="Configuration")
@@ -96,7 +96,7 @@ class MainView(CTkView):
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=0)
         self.root.grid_rowconfigure(1, weight=1)
-        tabview.grid(row=1, column=0, sticky="nsew")
+        main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
     def mainloop(self) -> None:
         self.root.mainloop()
@@ -240,18 +240,23 @@ class MainView(CTkView):
             return str(value)
 
     def adjust_column_width(self) -> None:
-        """Adjust the column widths to fit the header text."""
+        """Adjust the column widths to fit the header text, preserving manual resizing."""
         heading_font = font.Font(font=("Calibri", 14, "bold"))
         padding = 60
         for col in self.tree["columns"]:
             text = self.tree.heading(col, "text")
-            width = heading_font.measure(text) + padding
-            # Set the minimum width of the column to the width of the text.
-            self.tree.column(col, minwidth=width, width=width, stretch=False)
+            min_width = heading_font.measure(text) + padding
+            # Get current width to preserve manual resizing
+            current_width = self.tree.column(col, "width")
+            # Use the larger of current width or minimum required width
+            final_width = max(current_width, min_width)
+            self.tree.column(col, minwidth=min_width, width=final_width, stretch=False)
         # First column (#0)
         text = self.tree.heading("#0", "text")
-        width = heading_font.measure(text) + padding
-        self.tree.column("#0", minwidth=width, width=width, stretch=False)
+        min_width = heading_font.measure(text) + padding
+        current_width = self.tree.column("#0", "width")
+        final_width = max(current_width, min_width)
+        self.tree.column("#0", minwidth=min_width, width=final_width, stretch=False)
 
     def on_tree_click(self, event: tkinter.Event) -> None:
         """Handle click events on the treeview to highlight the column header."""
