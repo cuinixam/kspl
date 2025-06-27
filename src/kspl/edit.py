@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from mashumaro import DataClassDictMixin
 from py_app_dev.core.cmd_line import Command, register_arguments_for_config_dataclass
@@ -15,17 +15,10 @@ from .kconfig import KConfig
 class EditCommandConfig(DataClassDictMixin):
     project_dir: Path = field(
         default=Path(".").absolute(),
-        metadata={
-            "help": "Project root directory. "
-            "Defaults to the current directory if not specified."
-        },
+        metadata={"help": "Project root directory. Defaults to the current directory if not specified."},
     )
-    kconfig_model_file: Optional[Path] = field(
-        default=None, metadata={"help": "KConfig model file (KConfig)."}
-    )
-    kconfig_config_file: Optional[Path] = field(
-        default=None, metadata={"help": "KConfig user configuration file (config.txt)."}
-    )
+    kconfig_model_file: Optional[Path] = field(default=None, metadata={"help": "KConfig model file (KConfig)."})
+    kconfig_config_file: Optional[Path] = field(default=None, metadata={"help": "KConfig user configuration file (config.txt)."})
 
     @classmethod
     def from_namespace(cls, namespace: Namespace) -> "EditCommandConfig":
@@ -53,27 +46,21 @@ class EditCommand(Command):
                 else:
                     self.logger.error(f"Variant {selected_variant} not found.")
         else:
-            KConfig(
-                cmd_config.kconfig_model_file, cmd_config.kconfig_config_file
-            ).menu_config()
+            KConfig(cmd_config.kconfig_model_file, cmd_config.kconfig_config_file).menu_config()
         return 0
 
-    def _select_variant(self, variant_names: List[str]) -> Optional[str]:
-        """Print the list of variants to choose from and let the user choose one"""
+    def _select_variant(self, variant_names: list[str]) -> str | None:
+        """Print the list of variants to choose from and let the user choose one."""
         selected_variant = None
         self.logger.info("Select a variant:")
         for index, variant_name in enumerate(variant_names):
             self.logger.info(f" [{index + 1}] {variant_name}")
         while True:
             try:
-                selected_variant = variant_names[
-                    int(input(f"Select a variant (1-{len(variant_names)}): ")) - 1
-                ]
+                selected_variant = variant_names[int(input(f"Select a variant (1-{len(variant_names)}): ")) - 1]
                 break
             except (ValueError, IndexError):
-                self.logger.error(
-                    "Invalid input. Please try again or press CTRL+C to abort."
-                )
+                self.logger.error("Invalid input. Please try again or press CTRL+C to abort.")
             # In case of KeyboardInterrupt (CTRL+C) we want to abort
             except KeyboardInterrupt:
                 self.logger.warning("Aborted by user.")

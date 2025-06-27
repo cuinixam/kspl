@@ -71,16 +71,11 @@ def test_create_configuration_data_with_variables(tmp_path: Path) -> None:
     config = KConfig(feature_model_file).collect_config_data()
     assert config.elements[0].value == "John Smith"
     assert config.elements[1].type == ConfigElementType.STRING
-    assert (
-        config.elements[1].value
-        == "Variable: John Smith, environment variable: MY_ENV_VAR_VALUE"
-    )
+    assert config.elements[1].value == "Variable: John Smith, environment variable: MY_ENV_VAR_VALUE"
 
 
 def test_boolean_without_description(tmp_path: Path) -> None:
-    """
-    A configuration without description can not be selected by the user
-    """
+    """A configuration without description can not be selected by the user."""
     feature_model_file = tmp_path / "kconfig.txt"
     feature_model_file.write_text(
         """
@@ -107,15 +102,11 @@ def test_boolean_without_description(tmp_path: Path) -> None:
     )
 
     config = KConfig(feature_model_file, user_config).collect_config_data()
-    assert config.elements == [
-        ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude")
-    ]
+    assert config.elements == [ConfigElement(ConfigElementType.STRING, "FIRST_NAME", "Dude")]
 
 
 def test_boolean_with_description(tmp_path: Path) -> None:
-    """
-    A configuration with description can be selected by the user
-    """
+    """A configuration with description can be selected by the user."""
     feature_model_file = tmp_path / "kconfig.txt"
     feature_model_file.write_text(
         """
@@ -146,9 +137,7 @@ def test_boolean_with_description(tmp_path: Path) -> None:
 
 
 def test_hex(tmp_path: Path) -> None:
-    """
-    A configuration with description can be selected by the user
-    """
+    """A configuration with description can be selected by the user."""
     feature_model_file = tmp_path / "kconfig.txt"
     feature_model_file.write_text(
         """
@@ -169,6 +158,7 @@ def test_hex(tmp_path: Path) -> None:
 def test_define_boolean_choices(tmp_path: Path) -> None:
     """
     Using a boolean choice will define a boolean for every value.
+
     Only the choices with a 'prompt' are selectable.
     There is a warning generated for choices without a 'prompt'.
     """
@@ -211,10 +201,7 @@ def test_define_boolean_choices(tmp_path: Path) -> None:
 
 
 def test_define_string_choices(tmp_path: Path) -> None:
-    """
-    A choice can only be of type bool or tristate.
-    One can use string but a warning will be issued.
-    """
+    """A choice can only be of type bool or tristate. One can use string but a warning will be issued."""
     feature_model_file = tmp_path / "kconfig.txt"
     feature_model_file.write_text(
         """
@@ -252,10 +239,7 @@ def test_define_string_choices(tmp_path: Path) -> None:
 
 
 def test_define_tristate_choices(tmp_path: Path) -> None:
-    """
-    For KConfig, `bool` and `tristate` types are represented as JSON Booleans,
-    the third `tristate` state is not supported.
-    """
+    """For KConfig, `bool` and `tristate` types are represented as JSON Booleans,    the third `tristate` state is not supported."""
     feature_model_file = tmp_path / "kconfig.txt"
     feature_model_file.write_text(
         """
@@ -295,7 +279,8 @@ def test_define_tristate_choices(tmp_path: Path) -> None:
 
 def test_config_including_other_config(tmp_path: Path) -> None:
     """
-    Including other configuration files with 'source' works only as relative paths to the main file folder :(
+    Including other configuration files with 'source' works only as relative paths to the main file folder.
+
     See how 'common.txt' must include 'new.txt' with its relative path to the main file.
     One can also use:
         * 'rsource' - for paths relative to the current file
@@ -360,9 +345,7 @@ def test_config_including_other_config(tmp_path: Path) -> None:
 
 
 def test_config_including_other_configs_based_on_env_vars(tmp_path: Path) -> None:
-    """
-    One can refer to environment variables when including other files
-    """
+    """One can refer to environment variables when including other files."""
     feature_model_file = tmp_path / "kconfig.txt"
     feature_model_file.write_text(
         """

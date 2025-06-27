@@ -13,12 +13,8 @@ from kspl.gui import GuiCommand
 
 
 def do_run() -> None:
-    parser = ArgumentParser(
-        prog="kspl", description="kconfig for SPL", exit_on_error=False
-    )
-    parser.add_argument(
-        "-v", "--version", action="version", version=f"%(prog)s {__version__}"
-    )
+    parser = ArgumentParser(prog="kspl", description="kconfig for SPL", exit_on_error=False)
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {__version__}")
     builder = CommandLineHandlerBuilder(parser)
     builder.add_commands([GuiCommand(), GenerateCommand(), EditCommand()])
     handler = builder.create()

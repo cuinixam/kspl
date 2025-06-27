@@ -1,0 +1,62 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "run tests",
+      "command": ".venv/bin/pypeline run --step PyTest --single",
+      "windows": {
+        "command": ".venv/Scripts/pypeline run --step PyTest --single"
+      },
+      "type": "shell",
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "generate docs",
+      "command": ".venv/bin/pypeline run --step Docs --single",
+      "windows": {
+        "command": ".venv/Scripts/pypeline run --step Docs --single"
+      },
+      "type": "shell",
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "open docs index.html",
+      "command": "${workspaceFolder}/docs/_build/index.html",
+      "type": "shell",
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "run pre-commit checks",
+      "command": ".venv/bin/pypeline run --step PreCommit --single",
+      "windows": {
+        "command": ".venv/Scripts/pypeline run --step PreCommit --single"
+      },
+      "type": "shell",
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    }
+  ]
+}

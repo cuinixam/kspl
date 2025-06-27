@@ -81,14 +81,10 @@ def test_header_file_written_when_changed(tmp_path: Path) -> None:
     assert header_file.exists()
     timestamp = header_file.stat().st_mtime
     writer.write(config)
-    assert (
-        header_file.stat().st_mtime == timestamp
-    ), "the file shall not be written if content is not changed"
+    assert header_file.stat().st_mtime == timestamp, "the file shall not be written if content is not changed"
     header_file.write_text("Modified content")
     writer.write(config)
-    assert (
-        header_file.read_text() != "Modified content"
-    ), "the file should have been updated because the content changed"
+    assert header_file.read_text() != "Modified content", "the file should have been updated because the content changed"
 
 
 def test_json_writer(configuration_data: ConfigurationData) -> None:
@@ -120,9 +116,7 @@ def test_cmake_writer(configuration_data: ConfigurationData) -> None:
 
 
 def test_generate(tmp_path: Path) -> None:
-    """
-    KConfigLib can generate the configuration as C-header file (like autoconf.h)
-    """
+    """KConfigLib can generate the configuration as C-header file (like autoconf.h)."""
     feature_model_file = tmp_path / "kconfig.txt"
     feature_model_file.write_text(
         """
