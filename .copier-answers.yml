@@ -1,18 +1,21 @@
 # Changes here will be overwritten by Copier
-_commit: b517950
+_commit: 3c6a90a
 _src_path: .
 copyright_year: '2023'
-documentation: true
+documentation: false
 email: cuinixam@me.com
 full_name: Cuinixam
 github_username: cuinixam
+has_cli: false
 initial_commit: false
+is_django_package: false
 open_source_license: MIT
+open_with_editor: false
 package_name: kspl
 project_name: SPL KConfig GUI
 project_short_description: KConfig GUI for Software Product Lines with multiple variants.
 project_slug: kspl
-run_poetry_install: false
+run_uv_sync: false
 setup_github: false
 setup_pre_commit: false
 

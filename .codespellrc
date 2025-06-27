@@ -1,2 +1,2 @@
 [codespell]
-skip = *.lock
+ignore-words-list = socio-economic
