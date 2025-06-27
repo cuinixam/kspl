@@ -268,7 +268,11 @@ class MainView(CTkView):
         col_idx = int(column_id_str.replace("#", "")) - 1
         if col_idx < 0:
             return
-        column_name = self.tree["columns"][col_idx]
+        # Use displaycolumns instead of columns to account for hidden columns
+        visible_columns = self.tree["displaycolumns"]
+        if col_idx >= len(visible_columns):
+            return
+        column_name = visible_columns[col_idx]
 
         if column_name == self.selected_column_id:
             return
