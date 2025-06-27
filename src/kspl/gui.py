@@ -47,6 +47,8 @@ class MainView(CTkView):
         self.elements = elements
         self.elements_dict = {elem.name: elem for elem in elements}
         self.variants = variants
+        self.all_columns = [v.name for v in self.variants]
+        self.visible_columns = list(self.all_columns)
 
         self.logger = logger.bind()
         self.edit_event_data: Optional[EditEventData] = None
@@ -59,11 +61,23 @@ class MainView(CTkView):
         self.root.title("K-SPL")
         self.root.geometry(f"{1080}x{580}")
 
+        # Frame for controls
+        control_frame = customtkinter.CTkFrame(self.root)
+        control_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
+
+        self.column_select_button = customtkinter.CTkButton(
+            master=control_frame,
+            text="Select variants",
+            command=self.open_column_selection_dialog,
+        )
+        self.column_select_button.pack(side="left", padx=5)
+
         # ========================================================
         # create tabview and populate with frames
         tabview = customtkinter.CTkTabview(self.root)
         self.tree = self.create_tree_view(tabview.add("Configuration"))
         self.tree["columns"] = tuple(variant.name for variant in self.variants)
+        self.tree["displaycolumns"] = self.visible_columns
         self.tree.heading("#0", text="Configuration")
         self.header_texts: Dict[str, str] = {}
         for variant in self.variants:
@@ -80,8 +94,9 @@ class MainView(CTkView):
         # ========================================================
         # put all together
         self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_rowconfigure(0, weight=1)
-        tabview.grid(row=0, column=0, sticky="nsew")
+        self.root.grid_rowconfigure(0, weight=0)
+        self.root.grid_rowconfigure(1, weight=1)
+        tabview.grid(row=1, column=0, sticky="nsew")
 
     def mainloop(self) -> None:
         self.root.mainloop()
@@ -333,6 +348,67 @@ class MainView(CTkView):
         result = self.edit_event_data
         self.edit_event_data = None
         return result
+
+    def update_visible_columns(self) -> None:
+        """Update the visible columns based on the state of the checkboxes."""
+        self.visible_columns = [
+            col_name for col_name, var in self.column_vars.items() if var.get()
+        ]
+        self.tree["displaycolumns"] = self.visible_columns
+        self.adjust_column_width()
+
+    def open_column_selection_dialog(self) -> None:
+        """Open a dialog to select which columns to display."""
+        # Create a new top-level window
+        dialog = customtkinter.CTkToplevel(self.root)
+        dialog.title("Select variants")
+        dialog.geometry("400x300")
+
+        # Create a frame for the checkboxes
+        checkbox_frame = customtkinter.CTkFrame(dialog)
+        checkbox_frame.pack(padx=10, pady=10, fill="both", expand=True)
+
+        # Create a variable for each column
+        self.column_vars = {}
+        for column_name in self.all_columns:
+            # Set the initial value based on whether the column is currently visible
+            is_visible = column_name in self.visible_columns
+            var = tkinter.BooleanVar(value=is_visible)
+            checkbox = customtkinter.CTkCheckBox(
+                master=checkbox_frame,
+                text=column_name,
+                command=self.update_visible_columns,
+                variable=var,
+            )
+            checkbox.pack(anchor="w", padx=5, pady=2)
+            self.column_vars[column_name] = var
+
+        # Add OK and Cancel buttons
+        button_frame = customtkinter.CTkFrame(dialog)
+        button_frame.pack(padx=10, pady=10)
+
+        ok_button = customtkinter.CTkButton(
+            master=button_frame,
+            text="OK",
+            command=dialog.destroy,
+        )
+        ok_button.pack(side="right", padx=5)
+
+        cancel_button = customtkinter.CTkButton(
+            master=button_frame,
+            text="Cancel",
+            command=dialog.destroy,
+        )
+        cancel_button.pack(side="right", padx=5)
+
+        # Center the dialog on the screen
+        dialog.update_idletasks()
+        x = (self.root.winfo_width() - dialog.winfo_width()) // 2
+        y = (self.root.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{self.root.winfo_x() + x}+{self.root.winfo_y() + y}")
+
+        dialog.transient(self.root)  # Keep the dialog above the main window
+        dialog.grab_set()  # Make the dialog modal
 
 
 class KSPL(Presenter):
