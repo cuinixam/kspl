@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.0 (2025-06-28)
+
+### Features
+
+- Move variants filter to control buttons ([`e0bd7af`](https://github.com/cuinixam/kspl/commit/e0bd7af35ed4c6eb4ed53ce3e6dd88f84b03d7c1))
+
 ## v1.3.0 (2025-06-28)
 
 ### Bug fixes
