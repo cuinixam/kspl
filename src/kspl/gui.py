@@ -63,36 +63,23 @@ class MainView(CTkView):
         control_frame = customtkinter.CTkFrame(self.root)
         control_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
 
-        self.column_select_button = customtkinter.CTkButton(
-            master=control_frame,
-            text="Select variants",
-            command=self.open_column_selection_dialog,
-        )
-        self.column_select_button.pack(side="left", padx=5)
+        # Define control actions - only need to maintain this list
+        self.control_actions = [
+            ("🔽 Expand", self.expand_all_items),
+            ("🔼 Collapse", self.collapse_all_items),
+            ("🔍 Select", self.open_column_selection_dialog),
+            ("🔄 Refresh", self.trigger_refresh_event),
+        ]
 
-        # Tree expansion controls with segmented button
-        tree_label = customtkinter.CTkLabel(control_frame, text="Tree:", font=("Arial", 12))
-        tree_label.pack(side="left", padx=(10, 5))
-
+        # Tree expansion controls with segmented button including filter
         self.tree_control_segment = customtkinter.CTkSegmentedButton(
             master=control_frame,
-            values=["⊞", "⊟", "🔄"],
+            values=[action[0] for action in self.control_actions],
             command=self.on_tree_control_segment_click,
-            height=30,
+            height=35,
+            font=("Arial", 14),
         )
         self.tree_control_segment.pack(side="left", padx=2)
-        # Note: Tooltip doesn't work with segmented buttons due to CTk limitations
-
-        # Reserve space for future refresh button
-        # self.refresh_button = customtkinter.CTkButton(
-        #     master=control_frame,
-        #     text="🔄",
-        #     command=self.refresh_data,
-        #     width=30,
-        #     height=30,
-        # )
-        # self.refresh_button.pack(side="left", padx=2)
-        # self.create_tooltip(self.refresh_button, "Refresh")
 
         # ========================================================
         # create main content frame
@@ -367,12 +354,11 @@ class MainView(CTkView):
 
     def on_tree_control_segment_click(self, value: str) -> None:
         """Handle clicks on the tree control segmented button."""
-        if value == "⊞":
-            self.expand_all_items()
-        elif value == "⊟":
-            self.collapse_all_items()
-        elif value == "🔄":
-            self.trigger_refresh_event()
+        # Find the action based on the button text and execute it
+        for label, action in self.control_actions:
+            if value == label:
+                action()
+                break
         # Reset selection to avoid button staying selected
         self.tree_control_segment.set("")
 
