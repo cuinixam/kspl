@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.0 (2025-06-28)
+
+### Bug fixes
+
+- Obsolete step for creating the docs ([`7a548c6`](https://github.com/cuinixam/kspl/commit/7a548c6f0ec83e2851500c3a937f15daf76ae0f2))
+
+### Features
+
+- Add support to refresh and expand view data ([`0d6d4ec`](https://github.com/cuinixam/kspl/commit/0d6d4ec4679dbaf6c116dddd4150bbf104eccbd8))
+
 ## v1.2.0 (2025-06-28)
 
 ### Bug fixes
