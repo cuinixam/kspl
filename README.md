@@ -38,6 +38,26 @@
 
 KConfig GUI for Software Product Lines with multiple variants.
 
+## How to use it
+
+Use pipx (or your favorite package manager) to install and run it in an isolated environment:
+
+```shell
+pipx install kspl
+```
+
+This will install the `kspl` command globally, which you can use to open/edit the KConfig configuration in your SPL.
+
+```shell
+kspl view --project-dir /path/to/your/spl
+```
+
+For more information on the available commands, run:
+
+```shell
+kspl --help
+```
+
 ## Start developing
 
 The project uses UV for dependencies management and packaging and the [pypeline](https://github.com/cuinixam/pypeline) for streamlining the development workflow.
