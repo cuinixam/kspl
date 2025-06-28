@@ -69,3 +69,20 @@ class SPLKConfigData:
             if variant.name == variant_name:
                 return variant
         return None
+
+    def refresh_data(self) -> None:
+        """Refresh the KConfig data by reloading all configuration files."""
+        variant_config_files = self._search_variant_config_file(self.project_root_dir)
+        if not self.kconfig_model_file.is_file():
+            raise UserNotificationException(f"File {self.kconfig_model_file} does not exist.")
+
+        # Reload the model
+        self.model = KConfig(self.kconfig_model_file)
+
+        # Reload variant configurations
+        if variant_config_files:
+            self.variant_configs = [VariantData(self._get_variant_name(file), KConfig(self.kconfig_model_file, file)) for file in variant_config_files]
+        else:
+            self.variant_configs = [VariantData("Default", self.model)]
+
+        self.logger.info(f"Refreshed data: found {len(self.variant_configs)} variants")

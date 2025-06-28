@@ -21,6 +21,7 @@ from kspl.kconfig import ConfigElementType, EditableConfigElement, TriState
 
 class KSplEvents(EventID):
     EDIT = auto()
+    REFRESH = auto()
 
 
 class CTkView(View):
@@ -47,12 +48,11 @@ class MainView(CTkView):
         self.elements = elements
         self.elements_dict = {elem.name: elem for elem in elements}
         self.variants = variants
-        self.all_columns = [v.name for v in self.variants]
-        self.visible_columns = list(self.all_columns)
 
         self.logger = logger.bind()
         self.edit_event_data: EditEventData | None = None
         self.trigger_edit_event = self.event_manager.create_event_trigger(KSplEvents.EDIT)
+        self.trigger_refresh_event = self.event_manager.create_event_trigger(KSplEvents.REFRESH)
         self.root = customtkinter.CTk()
 
         # Configure the main window
@@ -70,21 +70,42 @@ class MainView(CTkView):
         )
         self.column_select_button.pack(side="left", padx=5)
 
+        # Tree expansion controls with segmented button
+        tree_label = customtkinter.CTkLabel(control_frame, text="Tree:", font=("Arial", 12))
+        tree_label.pack(side="left", padx=(10, 5))
+
+        self.tree_control_segment = customtkinter.CTkSegmentedButton(
+            master=control_frame,
+            values=["⊞", "⊟", "🔄"],
+            command=self.on_tree_control_segment_click,
+            height=30,
+        )
+        self.tree_control_segment.pack(side="left", padx=2)
+        # Note: Tooltip doesn't work with segmented buttons due to CTk limitations
+
+        # Reserve space for future refresh button
+        # self.refresh_button = customtkinter.CTkButton(
+        #     master=control_frame,
+        #     text="🔄",
+        #     command=self.refresh_data,
+        #     width=30,
+        #     height=30,
+        # )
+        # self.refresh_button.pack(side="left", padx=2)
+        # self.create_tooltip(self.refresh_button, "Refresh")
+
         # ========================================================
         # create main content frame
         main_frame = customtkinter.CTkFrame(self.root)
         self.tree = self.create_tree_view(main_frame)
-        self.tree["columns"] = tuple(variant.name for variant in self.variants)
-        self.tree["displaycolumns"] = self.visible_columns
-        self.tree.heading("#0", text="Configuration")
-        self.header_texts: dict[str, str] = {}
-        for variant in self.variants:
-            self.tree.heading(variant.name, text=variant.name)
-            self.header_texts[variant.name] = variant.name
+
+        # Initialize column manager after tree is created
+        self.column_manager = ColumnManager(self.tree)
+        self.column_manager.update_columns(self.variants)
+
         # Keep track of the mapping between the tree view items and the config elements
         self.tree_view_items_mapping = self.populate_tree_view()
         self.adjust_column_width()
-        self.selected_column_id: str | None = None
         self.tree.bind("<Button-1>", self.on_tree_click)
         # TODO: make the tree view editable
         # self.tree.bind("<Double-1>", self.double_click_handler)
@@ -217,56 +238,48 @@ class MainView(CTkView):
         """Adjust the column widths to fit the header text, preserving manual resizing."""
         heading_font = font.Font(font=("Calibri", 14, "bold"))
         padding = 60
-        for col in self.tree["columns"]:
-            text = self.tree.heading(col, "text")
-            min_width = heading_font.measure(text) + padding
-            # Get current width to preserve manual resizing
-            current_width = self.tree.column(col, "width")
-            # Use the larger of current width or minimum required width
-            final_width = max(current_width, min_width)
-            self.tree.column(col, minwidth=min_width, width=final_width, stretch=False)
+
+        # Only adjust columns that actually exist in the current configuration
+        current_columns = self.tree["columns"]
+        for col in current_columns:
+            try:
+                text = self.tree.heading(col, "text")
+                min_width = heading_font.measure(text) + padding
+                # Get current width to preserve manual resizing
+                current_width = self.tree.column(col, "width")
+                # Use the larger of current width or minimum required width
+                final_width = max(current_width, min_width)
+                self.tree.column(col, minwidth=min_width, width=final_width, stretch=False)
+            except tkinter.TclError:
+                # Column might not exist anymore, skip it
+                self.logger.warning(f"Skipping column '{col}' as it no longer exists")
+                continue
+
         # First column (#0)
-        text = self.tree.heading("#0", "text")
-        min_width = heading_font.measure(text) + padding
-        current_width = self.tree.column("#0", "width")
-        final_width = max(current_width, min_width)
-        self.tree.column("#0", minwidth=min_width, width=final_width, stretch=False)
+        try:
+            text = self.tree.heading("#0", "text")
+            min_width = heading_font.measure(text) + padding
+            current_width = self.tree.column("#0", "width")
+            final_width = max(current_width, min_width)
+            self.tree.column("#0", minwidth=min_width, width=final_width, stretch=False)
+        except tkinter.TclError:
+            self.logger.warning("Skipping column '#0' as it no longer exists")
 
     def on_tree_click(self, event: Any) -> None:
         """Handle click events on the treeview to highlight the column header."""
-        column_id_str = self.tree.identify_column(event.x)
-        if not column_id_str or column_id_str == "#0":
-            # Click was on the tree part or outside columns, so reset if anything was selected
-            if self.selected_column_id:
-                original_text = self.header_texts.get(self.selected_column_id)
-                if original_text:
-                    self.tree.heading(self.selected_column_id, text=original_text)
-                self.selected_column_id = None
+        column_name = self.column_manager.get_column_from_click_position(event.x)
+
+        if column_name is None:
+            # Click was on the tree part or outside columns, clear selection
+            self.column_manager.clear_selection()
             return
 
-        col_idx = int(column_id_str.replace("#", "")) - 1
-        if col_idx < 0:
-            return
-        # Use displaycolumns instead of columns to account for hidden columns
-        visible_columns = self.tree["displaycolumns"]
-        if col_idx >= len(visible_columns):
-            return
-        column_name = visible_columns[col_idx]
-
-        if column_name == self.selected_column_id:
+        if column_name == self.column_manager.selected_column_id:
+            # Already selected, do nothing
             return
 
-        # Reset the previously selected column header
-        if self.selected_column_id:
-            original_text = self.header_texts.get(self.selected_column_id)
-            if original_text:
-                self.tree.heading(self.selected_column_id, text=original_text)
-
-        # Highlight the new column header
-        original_text = self.header_texts.get(column_name)
-        if original_text:
-            self.tree.heading(column_name, text=f"✅{original_text}")
-        self.selected_column_id = column_name
+        # Set the new selected column
+        self.column_manager.set_selected_column(column_name)
 
     def double_click_handler(self, event: Any) -> None:
         current_selection = self.tree.selection()
@@ -324,11 +337,44 @@ class MainView(CTkView):
         self.edit_event_data = None
         return result
 
-    def update_visible_columns(self) -> None:
-        """Update the visible columns based on the state of the checkboxes."""
-        self.visible_columns = [col_name for col_name, var in self.column_vars.items() if var.get()]
-        self.tree["displaycolumns"] = self.visible_columns
-        self.adjust_column_width()
+    def expand_all_items(self) -> None:
+        """Expand all items in the tree view."""
+
+        def expand_recursive(item: str) -> None:
+            self.tree.item(item, open=True)
+            children = self.tree.get_children(item)
+            for child in children:
+                expand_recursive(child)
+
+        # Start with root items
+        root_items = self.tree.get_children()
+        for item in root_items:
+            expand_recursive(item)
+
+    def collapse_all_items(self) -> None:
+        """Collapse all items in the tree view."""
+
+        def collapse_recursive(item: str) -> None:
+            children = self.tree.get_children(item)
+            for child in children:
+                collapse_recursive(child)
+            self.tree.item(item, open=False)
+
+        # Start with root items
+        root_items = self.tree.get_children()
+        for item in root_items:
+            collapse_recursive(item)
+
+    def on_tree_control_segment_click(self, value: str) -> None:
+        """Handle clicks on the tree control segmented button."""
+        if value == "⊞":
+            self.expand_all_items()
+        elif value == "⊟":
+            self.collapse_all_items()
+        elif value == "🔄":
+            self.trigger_refresh_event()
+        # Reset selection to avoid button staying selected
+        self.tree_control_segment.set("")
 
     def open_column_selection_dialog(self) -> None:
         """Open a dialog to select which columns to display."""
@@ -341,20 +387,24 @@ class MainView(CTkView):
         checkbox_frame = customtkinter.CTkFrame(dialog)
         checkbox_frame.pack(padx=10, pady=10, fill="both", expand=True)
 
-        # Create a variable for each column
-        self.column_vars = {}
-        for column_name in self.all_columns:
+        # Create a variable for each column using ColumnManager
+        for column_name in self.column_manager.all_columns:
             # Set the initial value based on whether the column is currently visible
-            is_visible = column_name in self.visible_columns
-            var = tkinter.BooleanVar(value=is_visible)
+            is_visible = column_name in self.column_manager.visible_columns
+
+            # Get or create variable
+            if column_name not in self.column_manager.column_vars:
+                self.column_manager.column_vars[column_name] = tkinter.BooleanVar(value=is_visible)
+            else:
+                self.column_manager.column_vars[column_name].set(is_visible)
+
             checkbox = customtkinter.CTkCheckBox(
                 master=checkbox_frame,
                 text=column_name,
                 command=self.update_visible_columns,
-                variable=var,
+                variable=self.column_manager.column_vars[column_name],
             )
             checkbox.pack(anchor="w", padx=5, pady=2)
-            self.column_vars[column_name] = var
 
         # Add OK and Cancel buttons
         button_frame = customtkinter.CTkFrame(dialog)
@@ -383,11 +433,35 @@ class MainView(CTkView):
         dialog.transient(self.root)  # Keep the dialog above the main window
         dialog.grab_set()  # Make the dialog modal
 
+    def update_visible_columns(self) -> None:
+        """Wrapper method to update visible columns via ColumnManager."""
+        self.column_manager.update_visible_columns()
+
+    def update_data(self, elements: list[EditableConfigElement], variants: list[VariantViewData]) -> None:
+        """Update the view with refreshed data."""
+        self.elements = elements
+        self.elements_dict = {elem.name: elem for elem in elements}
+        self.variants = variants
+
+        # Clear the tree first
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        # Use ColumnManager to handle all column-related updates
+        self.column_manager.update_columns(variants)
+
+        # Repopulate the tree view
+        self.tree_view_items_mapping = self.populate_tree_view()
+        self.adjust_column_width()
+
+    # ...existing code...
+
 
 class KSPL(Presenter):
     def __init__(self, event_manager: EventManager, project_dir: Path) -> None:
         self.event_manager = event_manager
         self.event_manager.subscribe(KSplEvents.EDIT, self.edit)
+        self.event_manager.subscribe(KSplEvents.REFRESH, self.refresh)
         self.logger = logger.bind()
         self.kconfig_data = SPLKConfigData(project_dir)
         self.view = MainView(
@@ -410,6 +484,31 @@ class KSPL(Presenter):
             if config_element is None:
                 raise ValueError(f"Could not find config element '{edit_event_data.config_element_name}'")
             config_element.value = edit_event_data.new_value
+
+    def refresh(self) -> None:
+        """Handle refresh event by reloading data and updating the view."""
+        self.logger.info("Refreshing KConfig data...")
+        try:
+            # Store old state for debugging
+            old_variants = [v.name for v in self.kconfig_data.get_variants()]
+            self.logger.debug(f"Before refresh: {len(old_variants)} variants: {old_variants}")
+
+            self.kconfig_data.refresh_data()
+
+            # Log new state
+            new_variants = [v.name for v in self.kconfig_data.get_variants()]
+            self.logger.debug(f"After refresh: {len(new_variants)} variants: {new_variants}")
+
+            # Update the view with new data
+            self.view.update_data(
+                self.kconfig_data.get_elements(),
+                self.kconfig_data.get_variants(),
+            )
+            self.logger.info("Data refreshed successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to refresh data: {e}")
+            # Don't re-raise the exception to prevent the GUI from crashing
+            # Instead, keep the current data state
 
     def run(self) -> None:
         self.view.mainloop()
@@ -442,3 +541,112 @@ class GuiCommand(Command):
 
     def _register_arguments(self, parser: ArgumentParser) -> None:
         register_arguments_for_config_dataclass(parser, GuiCommandConfig)
+
+
+class ColumnManager:
+    """Manages column state, visibility, selection, and headings for the treeview."""
+
+    def __init__(self, tree: ttk.Treeview) -> None:
+        self.tree = tree
+        self.all_columns: list[str] = []
+        self.visible_columns: list[str] = []
+        self.header_texts: dict[str, str] = {}
+        self.selected_column_id: str | None = None
+        self.column_vars: dict[str, tkinter.BooleanVar] = {}
+
+    def update_columns(self, variants: list[VariantViewData]) -> None:
+        """Update column configuration with new variants."""
+        # Clear any existing selection FIRST, before any tree operations
+        self.selected_column_id = None
+
+        # Update column lists
+        new_all_columns = [v.name for v in variants]
+
+        # Preserve visible columns that still exist, add new ones
+        if self.visible_columns:
+            existing_visible = [col for col in self.visible_columns if col in new_all_columns]
+            new_columns = [col for col in new_all_columns if col not in existing_visible]
+            self.visible_columns = existing_visible + new_columns
+        else:
+            self.visible_columns = list(new_all_columns)
+
+        # Update all_columns after determining visible columns
+        self.all_columns = new_all_columns
+
+        # Update tree configuration with error handling
+        try:
+            # First completely clear the tree configuration
+            self.tree.configure(columns=(), displaycolumns=())
+            # Then set new configuration
+            self.tree["columns"] = tuple(self.all_columns)
+            self.tree["displaycolumns"] = self.visible_columns
+        except tkinter.TclError:
+            # If there's still an error, log it but continue
+            pass
+
+        # Update header texts and tree headings
+        self.header_texts = {}
+        for variant in variants:
+            self.header_texts[variant.name] = variant.name
+            try:
+                self.tree.heading(variant.name, text=variant.name)
+            except tkinter.TclError:
+                # Column might not exist yet, will be handled in next update
+                pass
+
+        # Clean up column variables for dialog
+        self.column_vars = {k: v for k, v in self.column_vars.items() if k in self.all_columns}
+
+    def set_selected_column(self, column_name: str) -> bool:
+        """Set the selected column and update its visual state. Returns True if successful."""
+        if column_name not in self.all_columns:
+            return False
+
+        # Clear previous selection
+        self._clear_selection()
+
+        # Set new selection
+        self.selected_column_id = column_name
+        original_text = self.header_texts.get(column_name)
+        if original_text:
+            try:
+                self.tree.heading(column_name, text=f"✅{original_text}")
+                return True
+            except tkinter.TclError:
+                self.selected_column_id = None
+                return False
+        return False
+
+    def clear_selection(self) -> None:
+        """Clear the column selection."""
+        self._clear_selection()
+
+    def _clear_selection(self) -> None:
+        """Internal method to clear selection without public access."""
+        if self.selected_column_id and self.selected_column_id in self.header_texts:
+            # Only try to clear if the column still exists in the tree
+            if self.selected_column_id in self.all_columns:
+                original_text = self.header_texts[self.selected_column_id]
+                try:
+                    self.tree.heading(self.selected_column_id, text=original_text)
+                except tkinter.TclError:
+                    # Column no longer exists in tree, that's fine
+                    pass
+        self.selected_column_id = None
+
+    def get_column_from_click_position(self, x: int) -> str | None:
+        """Get column name from click position, returns None if invalid."""
+        column_id_str = self.tree.identify_column(x)
+        if not column_id_str or column_id_str == "#0":
+            return None
+
+        col_idx = int(column_id_str.replace("#", "")) - 1
+        if col_idx < 0 or col_idx >= len(self.visible_columns):
+            return None
+
+        return self.visible_columns[col_idx]
+
+    def update_visible_columns(self) -> None:
+        """Update visible columns based on column_vars state."""
+        self.visible_columns = [col_name for col_name, var in self.column_vars.items() if var.get()]
+        self.tree["displaycolumns"] = self.visible_columns
