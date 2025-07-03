@@ -367,11 +367,43 @@ class MainView(CTkView):
         # Create a new top-level window
         dialog = customtkinter.CTkToplevel(self.root)
         dialog.title("Select variants")
-        dialog.geometry("400x300")
+        dialog.geometry("400x450")
 
-        # Create a frame for the checkboxes
-        checkbox_frame = customtkinter.CTkFrame(dialog)
-        checkbox_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        # Create a frame for select/deselect all buttons
+        select_all_frame = customtkinter.CTkFrame(dialog)
+        select_all_frame.pack(padx=10, pady=(10, 5), fill="x")
+
+        def select_all_variants() -> None:
+            """Select all variant checkboxes."""
+            for var in self.column_manager.column_vars.values():
+                var.set(True)
+            self.update_visible_columns()
+
+        def deselect_all_variants() -> None:
+            """Deselect all variant checkboxes."""
+            for var in self.column_manager.column_vars.values():
+                var.set(False)
+            self.update_visible_columns()
+
+        select_all_button = customtkinter.CTkButton(
+            master=select_all_frame,
+            text="Select All",
+            command=select_all_variants,
+            width=100,
+        )
+        select_all_button.pack(side="left", padx=5)
+
+        deselect_all_button = customtkinter.CTkButton(
+            master=select_all_frame,
+            text="Deselect All",
+            command=deselect_all_variants,
+            width=100,
+        )
+        deselect_all_button.pack(side="left", padx=5)
+
+        # Create a scrollable frame for the checkboxes
+        scrollable_frame = customtkinter.CTkScrollableFrame(dialog, height=250)
+        scrollable_frame.pack(padx=10, pady=5, fill="both", expand=True)
 
         # Create a variable for each column using ColumnManager
         for column_name in self.column_manager.all_columns:
@@ -385,16 +417,16 @@ class MainView(CTkView):
                 self.column_manager.column_vars[column_name].set(is_visible)
 
             checkbox = customtkinter.CTkCheckBox(
-                master=checkbox_frame,
+                master=scrollable_frame,
                 text=column_name,
                 command=self.update_visible_columns,
                 variable=self.column_manager.column_vars[column_name],
             )
             checkbox.pack(anchor="w", padx=5, pady=2)
 
-        # Add OK and Cancel buttons
+        # Add OK and Cancel buttons in a fixed frame at the bottom
         button_frame = customtkinter.CTkFrame(dialog)
-        button_frame.pack(padx=10, pady=10)
+        button_frame.pack(padx=10, pady=10, fill="x")
 
         ok_button = customtkinter.CTkButton(
             master=button_frame,
