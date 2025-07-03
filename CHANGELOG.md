@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.0 (2025-07-03)
+
+### Features
+
+- Make select variants window scrollable ([`0e092e1`](https://github.com/cuinixam/kspl/commit/0e092e13c4fdb77f584032a681b4b64d19e64339))
+
 ## v1.4.0 (2025-06-28)
 
 ### Features
