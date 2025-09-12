@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.1 (2025-09-12)
+
+### Bug fixes
+
+- The json writer data is not consistent with the rest of the writers ([`a414c2d`](https://github.com/cuinixam/kspl/commit/a414c2d8dba2ad338d9ac203ac0d3857398def43))
+
 ## v1.5.0 (2025-07-03)
 
 ### Features
