@@ -35,8 +35,8 @@ def test_header_writer(tmp_path: Path, configuration_data: ConfigurationData) ->
     assert header_file.read_text() == textwrap.dedent(
         """\
     /** @file */
-    #ifndef __autoconf_h__
-    #define __autoconf_h__
+    #ifndef AUTOCONF_H
+    #define AUTOCONF_H
 
     /** NAME */
     #define CONFIG_NAME "John Smith"
@@ -47,7 +47,7 @@ def test_header_writer(tmp_path: Path, configuration_data: ConfigurationData) ->
     /** MY_HEX */
     #define CONFIG_MY_HEX 0x10
 
-    #endif /* __autoconf_h__ */
+    #endif /* AUTOCONF_H */
     """
     )
 
@@ -92,13 +92,11 @@ def test_json_writer(configuration_data: ConfigurationData) -> None:
     assert writer.generate_content(configuration_data) == textwrap.dedent(
         """\
     {
-        "features": {
-            "NAME": "John Smith",
-            "STATUS_SET": true,
-            "STATUS_NOT_SET": false,
-            "MY_INT": 13,
-            "MY_HEX": 16
-        }
+        "NAME": "John Smith",
+        "STATUS_SET": true,
+        "STATUS_NOT_SET": false,
+        "MY_INT": 13,
+        "MY_HEX": 16
     }"""
     )
 

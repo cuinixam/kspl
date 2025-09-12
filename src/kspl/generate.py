@@ -63,8 +63,8 @@ class HeaderWriter(FileWriter):
         """
         result: list[str] = [
             "/** @file */",
-            "#ifndef __autoconf_h__",
-            "#define __autoconf_h__",
+            "#ifndef AUTOCONF_H",
+            "#define AUTOCONF_H",
             "",
         ]
 
@@ -99,7 +99,7 @@ class HeaderWriter(FileWriter):
                     f"#define {self.config_prefix}{element.name} {val}",
                     element.name,
                 )
-        result.extend(["", "#endif /* __autoconf_h__ */", ""])
+        result.extend(["", "#endif /* AUTOCONF_H */", ""])
         return "\n".join(result)
 
 
@@ -113,7 +113,7 @@ class JsonWriter(FileWriter):
                 result[element.name] = True if element.value == TriState.Y else False
             else:
                 result[element.name] = element.value
-        return json.dumps({"features": result}, indent=4)
+        return json.dumps(result, indent=4)
 
 
 class CMakeWriter(FileWriter):
