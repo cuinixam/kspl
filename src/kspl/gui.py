@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import auto
 from pathlib import Path
 from tkinter import font, simpledialog, ttk
-from typing import Any
+from typing import Any, Callable
 
 import customtkinter
 from mashumaro import DataClassDictMixin
@@ -37,6 +37,10 @@ class EditEventData:
     new_value: Any
 
 
+FONT_INCREASE_VALUE = 1
+FONT_DECREASE_VALUE = -1
+
+
 class MainView(CTkView):
     def __init__(
         self,
@@ -58,6 +62,16 @@ class MainView(CTkView):
         # Configure the main window
         self.root.title("K-SPL")
         self.root.geometry(f"{1080}x{580}")
+        # ----------------------------------------------------
+        # Font / zoom management
+        # ----------------------------------------------------
+        self._font_family = "Calibri"
+        self._base_font_size = 16
+        self._font_size = self._base_font_size
+        self._min_font_size = 8
+        self._max_font_size = 40
+        # Keep style reference so we can update dynamically
+        self._style = ttk.Style()
 
         # Frame for controls
         control_frame = customtkinter.CTkFrame(self.root)
@@ -71,7 +85,18 @@ class MainView(CTkView):
             ("🔄 Refresh", self.trigger_refresh_event),
         ]
 
-        # Tree expansion controls with segmented button including filter
+        # Define zoom actions (label -> callback) - list only, no extra dict needed
+        self.zoom_actions: list[tuple[str, Callable[[], None]]] = [
+            ("🗚", lambda: self._change_font_size(FONT_INCREASE_VALUE)),
+            ("⟳", self._reset_font_size),
+            ("🗛", lambda: self._change_font_size(FONT_DECREASE_VALUE)),
+        ]
+
+        # Use grid in control_frame to keep zoom controls stable (no horizontal shift on font resize)
+        control_frame.grid_columnconfigure(0, weight=0)  # actions
+        control_frame.grid_columnconfigure(1, weight=1)  # elastic spacer
+        control_frame.grid_columnconfigure(2, weight=0)  # zoom controls
+
         self.tree_control_segment = customtkinter.CTkSegmentedButton(
             master=control_frame,
             values=[action[0] for action in self.control_actions],
@@ -79,7 +104,17 @@ class MainView(CTkView):
             height=35,
             font=("Arial", 14),
         )
-        self.tree_control_segment.pack(side="left", padx=2)
+        self.tree_control_segment.grid(row=0, column=0, padx=(2, 6), pady=2, sticky="w")
+
+        self.zoom_segment = customtkinter.CTkSegmentedButton(
+            master=control_frame,
+            values=[label for label, _ in self.zoom_actions],
+            command=self.on_zoom_segment_click,
+            height=35,
+            font=(self._font_family, self._font_size),
+            corner_radius=6,
+        )
+        self.zoom_segment.grid(row=0, column=2, padx=(6, 2), pady=2, sticky="e")
 
         # ========================================================
         # create main content frame
@@ -103,6 +138,11 @@ class MainView(CTkView):
         self.root.grid_rowconfigure(0, weight=0)
         self.root.grid_rowconfigure(1, weight=1)
         main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        # Register key bindings for zoom in/out like VS Code (Ctrl+ / Ctrl- / Ctrl0)
+        self._register_zoom_key_bindings()
+
+        # Initial font application (create_tree_view applied defaults already, but we want consistency)
+        self._apply_font_update()
 
     def mainloop(self) -> None:
         self.root.mainloop()
@@ -112,8 +152,7 @@ class MainView(CTkView):
         frame.grid_columnconfigure(0, weight=1)
 
         columns = [var.name for var in self.variants]
-
-        style = ttk.Style()
+        style = self._style  # reuse stored style
         # From: https://stackoverflow.com/a/56684731
         # This gives the selection a transparent look
         style.map(
@@ -125,10 +164,13 @@ class MainView(CTkView):
             "mystyle.Treeview",
             highlightthickness=0,
             bd=0,
-            font=("Calibri", 14),
-            rowheight=30,
-        )  # Modify the font of the body
-        style.configure("mystyle.Treeview.Heading", font=("Calibri", 14, "bold"))  # Modify the font of the headings
+            font=(self._font_family, self._font_size),
+            rowheight=int(self._font_size * 2.1),
+        )  # Body font & row height
+        style.configure(
+            "mystyle.Treeview.Heading",
+            font=(self._font_family, self._font_size, "bold"),
+        )  # Heading font
 
         # Add a separator to the right of the heading
         MainView.vline_img = tkinter.PhotoImage("vline", data="R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=")
@@ -165,6 +207,53 @@ class MainView(CTkView):
         config_treeview.pack(fill=tkinter.BOTH, expand=True)
 
         return config_treeview
+
+    # ----------------------------------------------------
+    # Font zoom helpers
+    # ----------------------------------------------------
+    def _register_zoom_key_bindings(self) -> None:
+        # Windows / Linux typical bindings
+        self.root.bind("<Control-plus>", lambda e: self._change_font_size(1))
+        self.root.bind("<Control-equal>", lambda e: self._change_font_size(1))  # '=' without Shift
+        self.root.bind("<Control-minus>", lambda e: self._change_font_size(-1))
+        self.root.bind("<Control-underscore>", lambda e: self._change_font_size(-1))
+        self.root.bind("<Control-0>", lambda e: self._reset_font_size())
+
+    def _change_font_size(self, delta: int) -> None:
+        new_size = max(self._min_font_size, min(self._max_font_size, self._font_size + delta))
+        if new_size == self._font_size:
+            return
+        self._font_size = new_size
+        self._apply_font_update()
+
+    def _reset_font_size(self) -> None:
+        if self._font_size == self._base_font_size:
+            return
+        self._font_size = self._base_font_size
+        self._apply_font_update()
+
+    def _apply_font_update(self) -> None:
+        """Apply current font settings to style + key widgets."""
+        try:
+            self._style.configure(
+                "mystyle.Treeview",
+                font=(self._font_family, self._font_size),
+                rowheight=int(self._font_size * 2.1),
+            )
+            self._style.configure(
+                "mystyle.Treeview.Heading",
+                font=(self._font_family, self._font_size, "bold"),
+            )
+            # Update segmented control font if it exists
+            if hasattr(self, "tree_control_segment"):
+                self.tree_control_segment.configure(font=(self._font_family, self._font_size))
+            if hasattr(self, "zoom_segment"):
+                self.zoom_segment.configure(font=(self._font_family, self._font_size))
+            # Recalculate column widths (since text width changed)
+            self.adjust_column_width()
+        except tkinter.TclError:
+            # Silently ignore if style not yet fully initialized
+            pass
 
     def populate_tree_view(self) -> dict[str, str]:
         """
@@ -223,7 +312,7 @@ class MainView(CTkView):
 
     def adjust_column_width(self) -> None:
         """Adjust the column widths to fit the header text, preserving manual resizing."""
-        heading_font = font.Font(font=("Calibri", 14, "bold"))
+        heading_font = font.Font(font=(self._font_family, self._font_size, "bold"))
         padding = 60
 
         # Only adjust columns that actually exist in the current configuration
@@ -354,13 +443,27 @@ class MainView(CTkView):
 
     def on_tree_control_segment_click(self, value: str) -> None:
         """Handle clicks on the tree control segmented button."""
-        # Find the action based on the button text and execute it
-        for label, action in self.control_actions:
-            if value == label:
-                action()
-                break
+        self._dispatch_action(self.control_actions, value)
         # Reset selection to avoid button staying selected
         self.tree_control_segment.set("")
+
+    def on_zoom_segment_click(self, value: str) -> None:
+        """Handle clicks on zoom segmented control."""
+        self._dispatch_action(self.zoom_actions, value)
+        # Reset selection so it doesn't stay highlighted
+        self.zoom_segment.set("")
+
+    def _dispatch_action(self, actions: list[tuple[str, Callable[[], None]]], value: str) -> None:
+        """
+        Generic helper to find and invoke an action by its label.
+
+        Linear search is fine (tiny lists). Keeps API symmetrical for control and zoom
+        segments without maintaining parallel dicts.
+        """
+        for label, callback in actions:
+            if label == value:
+                callback()
+                return
 
     def open_column_selection_dialog(self) -> None:
         """Open a dialog to select which columns to display."""
