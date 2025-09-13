@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.8.1 (2025-09-13)
+
+### Bug fixes
+
+- Gui freezes if columns are deselected and refresh multiple times ([`47c07da`](https://github.com/cuinixam/kspl/commit/47c07da6c967ddcc08c32f3db7d975ecee77fd3a))
+
 ## v1.8.0 (2025-09-13)
 
 ### Features
