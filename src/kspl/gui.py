@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import auto
 from pathlib import Path
 from tkinter import font, simpledialog, ttk
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import customtkinter
 from mashumaro import DataClassDictMixin
@@ -47,6 +47,7 @@ class MainView(CTkView):
         event_manager: EventManager,
         elements: list[EditableConfigElement],
         variants: list[VariantViewData],
+        icon_file: Optional[str] = None,
     ) -> None:
         self.event_manager = event_manager
         self.elements = elements
@@ -62,6 +63,11 @@ class MainView(CTkView):
         # Configure the main window
         self.root.title("K-SPL")
         self.root.geometry(f"{1080}x{580}")
+
+        if icon_file:
+            # update app icon
+            self.root.iconbitmap(icon_file)
+
         # ----------------------------------------------------
         # Font / zoom management
         # ----------------------------------------------------
@@ -579,7 +585,7 @@ class MainView(CTkView):
 
 
 class KSPL(Presenter):
-    def __init__(self, event_manager: EventManager, kconfig_data: KConfigData) -> None:
+    def __init__(self, event_manager: EventManager, kconfig_data: KConfigData, icon_file: Optional[str] = None) -> None:
         self.event_manager = event_manager
         self.event_manager.subscribe(KSplEvents.EDIT, self.edit)
         self.event_manager.subscribe(KSplEvents.REFRESH, self.refresh)
@@ -589,6 +595,7 @@ class KSPL(Presenter):
             self.event_manager,
             self.kconfig_data.get_elements(),
             self.kconfig_data.get_variants(),
+            icon_file=icon_file,
         )
 
     def edit(self) -> None:
