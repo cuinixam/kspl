@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.8.0 (2025-09-13)
+
+### Features
+
+- Add tooltip to zoom controls ([`afbd59a`](https://github.com/cuinixam/kspl/commit/afbd59adee11a1fb9151c0e65c9e5b67e10a55bd))
+- Add option to provide gui icon ([`93af50a`](https://github.com/cuinixam/kspl/commit/93af50ad65d64f0820d551562864c601e7179aff))
+
 ## v1.7.0 (2025-09-13)
 
 ### Features
