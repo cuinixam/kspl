@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.7.0 (2025-09-13)
+
+### Features
+
+- Add possibility to in/decrease the gui font size ([`c4a3850`](https://github.com/cuinixam/kspl/commit/c4a3850d054bed6ad2e04e3bcf451cbbb64695b9))
+
 ## v1.6.0 (2025-09-13)
 
 ### Features
