@@ -4,6 +4,7 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
 from enum import auto
 from pathlib import Path
+from threading import Lock
 from tkinter import font, simpledialog, ttk
 from typing import Any, Callable, Optional
 
@@ -710,73 +711,77 @@ class ColumnManager:
         self.header_texts: dict[str, str] = {}
         self.selected_column_id: str | None = None
         self.column_vars: dict[str, tkinter.BooleanVar] = {}
+        self._tree_lock = Lock()  # Prevent concurrent tree modifications
 
     def update_columns(self, variants: list[VariantViewData]) -> None:
         """Update column configuration with new variants."""
-        # Clear any existing selection FIRST, before any tree operations
-        self.selected_column_id = None
+        with self._tree_lock:
+            # Clear any existing selection FIRST, before any tree operations
+            self.selected_column_id = None
 
-        # Update column lists
-        new_all_columns = [v.name for v in variants]
+            # Update column lists
+            new_all_columns = [v.name for v in variants]
 
-        # Preserve visible columns that still exist, add new ones
-        if self.visible_columns:
-            existing_visible = [col for col in self.visible_columns if col in new_all_columns]
-            new_columns = [col for col in new_all_columns if col not in existing_visible]
-            self.visible_columns = existing_visible + new_columns
-        else:
-            self.visible_columns = list(new_all_columns)
+            # Preserve visible columns that still exist, add new ones
+            if self.visible_columns:
+                existing_visible = [col for col in self.visible_columns if col in new_all_columns]
+                new_columns = [col for col in new_all_columns if col not in existing_visible]
+                self.visible_columns = existing_visible + new_columns
+            else:
+                self.visible_columns = list(new_all_columns)
 
-        # Update all_columns after determining visible columns
-        self.all_columns = new_all_columns
+            # Update all_columns after determining visible columns
+            self.all_columns = new_all_columns
 
-        # Update tree configuration with error handling
-        try:
-            # First completely clear the tree configuration
-            self.tree.configure(columns=(), displaycolumns=())
-            # Then set new configuration
-            self.tree["columns"] = tuple(self.all_columns)
-            self.tree["displaycolumns"] = self.visible_columns
-        except tkinter.TclError:
-            # If there's still an error, log it but continue
-            pass
-
-        # Update header texts and tree headings
-        self.header_texts = {}
-        for variant in variants:
-            self.header_texts[variant.name] = variant.name
+            # Update tree configuration with error handling
             try:
-                self.tree.heading(variant.name, text=variant.name)
+                # First completely clear the tree configuration
+                self.tree.configure(columns=(), displaycolumns=())
+                # Then set new configuration
+                self.tree["columns"] = tuple(self.all_columns)
+                self.tree["displaycolumns"] = self.visible_columns
             except tkinter.TclError:
-                # Column might not exist yet, will be handled in next update
+                # If there's still an error, log it but continue
                 pass
 
-        # Clean up column variables for dialog
-        self.column_vars = {k: v for k, v in self.column_vars.items() if k in self.all_columns}
+            # Update header texts and tree headings
+            self.header_texts = {}
+            for variant in variants:
+                self.header_texts[variant.name] = variant.name
+                try:
+                    self.tree.heading(variant.name, text=variant.name)
+                except tkinter.TclError:
+                    # Column might not exist yet, will be handled in next update
+                    pass
+
+            # Clean up column variables for dialog
+            self.column_vars = {k: v for k, v in self.column_vars.items() if k in self.all_columns}
 
     def set_selected_column(self, column_name: str) -> bool:
         """Set the selected column and update its visual state. Returns True if successful."""
-        if column_name not in self.all_columns:
-            return False
-
-        # Clear previous selection
-        self._clear_selection()
-
-        # Set new selection
-        self.selected_column_id = column_name
-        original_text = self.header_texts.get(column_name)
-        if original_text:
-            try:
-                self.tree.heading(column_name, text=f"✅{original_text}")
-                return True
-            except tkinter.TclError:
-                self.selected_column_id = None
+        with self._tree_lock:
+            if column_name not in self.all_columns:
                 return False
-        return False
+
+            # Clear previous selection
+            self._clear_selection()
+
+            # Set new selection
+            self.selected_column_id = column_name
+            original_text = self.header_texts.get(column_name)
+            if original_text:
+                try:
+                    self.tree.heading(column_name, text=f"✅{original_text}")
+                    return True
+                except tkinter.TclError:
+                    self.selected_column_id = None
+                    return False
+            return False
 
     def clear_selection(self) -> None:
         """Clear the column selection."""
-        self._clear_selection()
+        with self._tree_lock:
+            self._clear_selection()
 
     def _clear_selection(self) -> None:
         """Internal method to clear selection without public access."""
@@ -805,5 +810,10 @@ class ColumnManager:
 
     def update_visible_columns(self) -> None:
         """Update visible columns based on column_vars state."""
-        self.visible_columns = [col_name for col_name, var in self.column_vars.items() if var.get()]
-        self.tree["displaycolumns"] = self.visible_columns
+        with self._tree_lock:
+            self.visible_columns = [col_name for col_name, var in self.column_vars.items() if var.get()]
+            try:
+                self.tree["displaycolumns"] = self.visible_columns
+            except tkinter.TclError:
+                # Tree might be in an inconsistent state, log and continue
+                pass
