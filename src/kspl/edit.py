@@ -7,7 +7,7 @@ from mashumaro import DataClassDictMixin
 from py_app_dev.core.cmd_line import Command, register_arguments_for_config_dataclass
 from py_app_dev.core.logging import logger, time_it
 
-from .config_slurper import SPLKConfigData
+from .config_slurper import KConfigData, SPLKConfigData
 from .kconfig import KConfig
 
 
@@ -35,7 +35,7 @@ class EditCommand(Command):
         self.logger.info(f"Running {self.name} with args {args}")
         cmd_config = EditCommandConfig.from_namespace(args)
         if cmd_config.kconfig_model_file is None:
-            kconfig_data = SPLKConfigData(cmd_config.project_dir)
+            kconfig_data: KConfigData = SPLKConfigData(cmd_config.project_dir)
             variants = kconfig_data.get_variants()
             variant_names = [variant.name for variant in variants]
             selected_variant = self._select_variant(variant_names)

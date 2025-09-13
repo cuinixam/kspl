@@ -15,7 +15,7 @@ from py_app_dev.mvp.event_manager import EventID, EventManager
 from py_app_dev.mvp.presenter import Presenter
 from py_app_dev.mvp.view import View
 
-from kspl.config_slurper import SPLKConfigData, VariantViewData
+from kspl.config_slurper import KConfigData, SPLKConfigData, VariantViewData
 from kspl.kconfig import ConfigElementType, EditableConfigElement, TriState
 
 
@@ -476,12 +476,12 @@ class MainView(CTkView):
 
 
 class KSPL(Presenter):
-    def __init__(self, event_manager: EventManager, project_dir: Path) -> None:
+    def __init__(self, event_manager: EventManager, kconfig_data: KConfigData) -> None:
         self.event_manager = event_manager
         self.event_manager.subscribe(KSplEvents.EDIT, self.edit)
         self.event_manager.subscribe(KSplEvents.REFRESH, self.refresh)
         self.logger = logger.bind()
-        self.kconfig_data = SPLKConfigData(project_dir)
+        self.kconfig_data = kconfig_data
         self.view = MainView(
             self.event_manager,
             self.kconfig_data.get_elements(),
@@ -554,7 +554,8 @@ class GuiCommand(Command):
         self.logger.info(f"Running {self.name} with args {args}")
         config = GuiCommandConfig.from_namespace(args)
         event_manager = EventManager()
-        KSPL(event_manager, config.project_dir.absolute()).run()
+        kconfig_data: KConfigData = SPLKConfigData(config.project_dir.absolute())
+        KSPL(event_manager, kconfig_data).run()
         return 0
 
     def _register_arguments(self, parser: ArgumentParser) -> None:

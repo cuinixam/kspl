@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from py_app_dev.core.exceptions import UserNotificationException
 from py_app_dev.core.logging import logger
@@ -25,7 +25,25 @@ class VariantData:
         return self.config.find_element(element_name)
 
 
-class SPLKConfigData:
+@runtime_checkable
+class KConfigData(Protocol):
+    """
+    Protocol representing the required interface for accessing KConfig data.
+
+    Applying Dependency Inversion: high-level components (GUI presenters, commands)
+    depend on this abstraction instead of the concrete SPLKConfigData implementation.
+    """
+
+    def get_elements(self) -> list[EditableConfigElement]: ...
+
+    def get_variants(self) -> list["VariantViewData"]: ...
+
+    def find_variant_config(self, variant_name: str) -> "VariantData | None": ...
+
+    def refresh_data(self) -> None: ...
+
+
+class SPLKConfigData(KConfigData):
     def __init__(self, project_root_dir: Path) -> None:
         self.project_root_dir = project_root_dir.absolute()
         variant_config_files = self._search_variant_config_file(self.project_root_dir)
