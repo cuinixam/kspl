@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.6.0 (2025-09-13)
+
+### Features
+
+- Support custom kconfig data provider ([`8d50044`](https://github.com/cuinixam/kspl/commit/8d5004458bf10ebc742a082bce106c5bd9240dfe))
+
 ## v1.5.1 (2025-09-12)
 
 ### Bug fixes

@@ -5,7 +5,7 @@ requires = [ "poetry-core>=2,<3" ]
 
 [project]
 name = "kspl"
-version = "1.5.1"
+version = "1.6.0"
 description = "KConfig GUI for Software Product Lines with multiple variants."
 readme = "README.md"
 license = { text = "MIT" }
