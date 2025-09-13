@@ -30,6 +30,7 @@ dependencies = [
   "customtkinter>=5,<6",
   "kconfiglib>=14,<15",
   "py-app-dev>=2,<3",
+  "CTkToolTip>=0.8,<1",
 ]
 urls."Bug Tracker" = "https://github.com/cuinixam/kspl/issues"
 urls.Changelog = "https://github.com/cuinixam/kspl/blob/main/CHANGELOG.md"

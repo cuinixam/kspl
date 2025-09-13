@@ -8,6 +8,7 @@ from tkinter import font, simpledialog, ttk
 from typing import Any, Callable, Optional
 
 import customtkinter
+from CTkToolTip import CTkToolTip
 from mashumaro import DataClassDictMixin
 from py_app_dev.core.cmd_line import Command, register_arguments_for_config_dataclass
 from py_app_dev.core.logging import logger, time_it
@@ -17,6 +18,15 @@ from py_app_dev.mvp.view import View
 
 from kspl.config_slurper import KConfigData, SPLKConfigData, VariantViewData
 from kspl.kconfig import ConfigElementType, EditableConfigElement, TriState
+
+
+@dataclass
+class SegmentedButtonAction:
+    """Dataclass for segmented button actions with optional tooltips."""
+
+    label: str
+    action: Callable[[], None]
+    tooltip: Optional[str] = None
 
 
 class KSplEvents(EventID):
@@ -83,19 +93,19 @@ class MainView(CTkView):
         control_frame = customtkinter.CTkFrame(self.root)
         control_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=5)
 
-        # Define control actions - only need to maintain this list
+        # Define control actions using the new dataclass
         self.control_actions = [
-            ("🔽 Expand", self.expand_all_items),
-            ("🔼 Collapse", self.collapse_all_items),
-            ("🔍 Select", self.open_column_selection_dialog),
-            ("🔄 Refresh", self.trigger_refresh_event),
+            SegmentedButtonAction("🔽 Expand", self.expand_all_items),
+            SegmentedButtonAction("🔼 Collapse", self.collapse_all_items),
+            SegmentedButtonAction("🔍 Select", self.open_column_selection_dialog),
+            SegmentedButtonAction("🔄 Refresh", self.trigger_refresh_event),
         ]
 
-        # Define zoom actions (label -> callback) - list only, no extra dict needed
-        self.zoom_actions: list[tuple[str, Callable[[], None]]] = [
-            ("🗚", lambda: self._change_font_size(FONT_INCREASE_VALUE)),
-            ("⟳", self._reset_font_size),
-            ("🗛", lambda: self._change_font_size(FONT_DECREASE_VALUE)),
+        # Define zoom actions using the new dataclass
+        self.zoom_actions = [
+            SegmentedButtonAction("🗚", lambda: self._change_font_size(FONT_INCREASE_VALUE), "Increase font size (Ctrl +)"),
+            SegmentedButtonAction("⟳", self._reset_font_size, "Reset font size to default (Ctrl 0)"),
+            SegmentedButtonAction("🗛", lambda: self._change_font_size(FONT_DECREASE_VALUE), "Decrease font size (Ctrl -)"),
         ]
 
         # Use grid in control_frame to keep zoom controls stable (no horizontal shift on font resize)
@@ -105,7 +115,7 @@ class MainView(CTkView):
 
         self.tree_control_segment = customtkinter.CTkSegmentedButton(
             master=control_frame,
-            values=[action[0] for action in self.control_actions],
+            values=[action.label for action in self.control_actions],
             command=self.on_tree_control_segment_click,
             height=35,
             font=("Arial", 14),
@@ -114,13 +124,16 @@ class MainView(CTkView):
 
         self.zoom_segment = customtkinter.CTkSegmentedButton(
             master=control_frame,
-            values=[label for label, _ in self.zoom_actions],
+            values=[action.label for action in self.zoom_actions],
             command=self.on_zoom_segment_click,
             height=35,
             font=(self._font_family, self._font_size),
             corner_radius=6,
         )
         self.zoom_segment.grid(row=0, column=2, padx=(6, 2), pady=2, sticky="e")
+
+        # Add tooltips for both control and zoom segments
+        self._add_segmented_button_tooltips()
 
         # ========================================================
         # create main content frame
@@ -260,6 +273,21 @@ class MainView(CTkView):
         except tkinter.TclError:
             # Silently ignore if style not yet fully initialized
             pass
+
+    def _add_segmented_button_tooltips(self) -> None:
+        """Add tooltips to segmented button controls."""
+        self._add_tooltips_to_segment(self.tree_control_segment, self.control_actions)
+        self._add_tooltips_to_segment(self.zoom_segment, self.zoom_actions)
+
+    def _add_tooltips_to_segment(self, segment: customtkinter.CTkSegmentedButton, actions: list[SegmentedButtonAction]) -> None:
+        """Add tooltips to a specific segmented button."""
+        if not hasattr(segment, "_buttons_dict"):
+            return
+
+        for action in actions:
+            if action.tooltip and action.label in segment._buttons_dict:
+                button = segment._buttons_dict[action.label]
+                CTkToolTip(button, message=action.tooltip)
 
     def populate_tree_view(self) -> dict[str, str]:
         """
@@ -459,16 +487,16 @@ class MainView(CTkView):
         # Reset selection so it doesn't stay highlighted
         self.zoom_segment.set("")
 
-    def _dispatch_action(self, actions: list[tuple[str, Callable[[], None]]], value: str) -> None:
+    def _dispatch_action(self, actions: list[SegmentedButtonAction], value: str) -> None:
         """
         Generic helper to find and invoke an action by its label.
 
         Linear search is fine (tiny lists). Keeps API symmetrical for control and zoom
         segments without maintaining parallel dicts.
         """
-        for label, callback in actions:
-            if label == value:
-                callback()
+        for action in actions:
+            if action.label == value:
+                action.action()
                 return
 
     def open_column_selection_dialog(self) -> None:
