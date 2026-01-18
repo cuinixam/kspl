@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 import kconfiglib
-from guiconfig import menuconfig
 from kconfiglib import MenuNode
+from py_app_dev.core.exceptions import UserNotificationException
 
 
 class TriState(Enum):
@@ -137,7 +137,13 @@ class KConfig:
             # The environment variable KCONFIG_CONFIG is used by kconfiglib to determine
             # the configuration file to load.
             os.environ["KCONFIG_CONFIG"] = self.k_config_file.absolute().as_posix()
-        menuconfig(self.config)
+
+        try:
+            from guiconfig import menuconfig
+
+            menuconfig(self.config)
+        except ImportError as e:
+            raise UserNotificationException("GUI functionality not available. Please ensure that your environment supports GUI operations.") from e
 
     def _collect_elements(self) -> list[EditableConfigElement]:
         elements: list[EditableConfigElement] = []

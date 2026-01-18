@@ -9,7 +9,7 @@ from py_app_dev.core.logging import logger, setup_logger
 from kspl import __version__
 from kspl.edit import EditCommand
 from kspl.generate import GenerateCommand
-from kspl.gui import GuiCommand
+from kspl.gui_cmd import GuiCommand
 
 
 def do_run() -> None:

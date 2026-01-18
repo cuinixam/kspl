@@ -1,6 +1,6 @@
 import tkinter
 from abc import abstractmethod
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 from dataclasses import dataclass, field
 from enum import auto
 from pathlib import Path
@@ -11,13 +11,12 @@ from typing import Any, Callable, Optional
 import customtkinter
 from CTkToolTip import CTkToolTip
 from mashumaro import DataClassDictMixin
-from py_app_dev.core.cmd_line import Command, register_arguments_for_config_dataclass
-from py_app_dev.core.logging import logger, time_it
+from py_app_dev.core.logging import logger
 from py_app_dev.mvp.event_manager import EventID, EventManager
 from py_app_dev.mvp.presenter import Presenter
 from py_app_dev.mvp.view import View
 
-from kspl.config_slurper import KConfigData, SPLKConfigData, VariantViewData
+from kspl.config_slurper import KConfigData, VariantViewData
 from kspl.kconfig import ConfigElementType, EditableConfigElement, TriState
 
 
@@ -681,24 +680,6 @@ class GuiCommandConfig(DataClassDictMixin):
     @classmethod
     def from_namespace(cls, namespace: Namespace) -> "GuiCommandConfig":
         return cls.from_dict(vars(namespace))
-
-
-class GuiCommand(Command):
-    def __init__(self) -> None:
-        super().__init__("view", "View all SPL KConfig configurations.")
-        self.logger = logger.bind()
-
-    @time_it("Build")
-    def run(self, args: Namespace) -> int:
-        self.logger.info(f"Running {self.name} with args {args}")
-        config = GuiCommandConfig.from_namespace(args)
-        event_manager = EventManager()
-        kconfig_data: KConfigData = SPLKConfigData(config.project_dir.absolute())
-        KSPL(event_manager, kconfig_data).run()
-        return 0
-
-    def _register_arguments(self, parser: ArgumentParser) -> None:
-        register_arguments_for_config_dataclass(parser, GuiCommandConfig)
 
 
 class ColumnManager:
