@@ -43,7 +43,6 @@ dev = [
   "pytest>=8,<9",
   "pytest-cov>=6,<7",
   "pre-commit>=4,<5",
-  "wrapt",
 ]
 
 [tool.ruff]
