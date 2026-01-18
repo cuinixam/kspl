@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.9.0 (2026-01-18)
+
+### Features
+
+- Handle python environments without gui support ([`3dcfcb5`](https://github.com/cuinixam/kspl/commit/3dcfcb5f6e2dc92486a8f4d01b5daa2f492f3c19))
+
 ## v1.8.1 (2025-09-13)
 
 ### Bug fixes
