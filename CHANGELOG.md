@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.10.0 (2026-06-23)
+
+### Features
+
+- Add menuconfig option to open in terminal ([`1737e62`](https://github.com/cuinixam/kspl/commit/1737e62778272e82531f5ab2eb2da121247f636f))
+
 ## v1.9.0 (2026-01-18)
 
 ### Features
