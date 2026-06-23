@@ -52,6 +52,15 @@ This will install the `kspl` command globally, which you can use to open/edit th
 kspl view --project-dir /path/to/your/spl
 ```
 
+To edit a single variant's feature selection, use `edit`. It prompts you to pick a
+variant, then opens the KConfig editor. By default it opens the `guiconfig` GUI
+editor; pass `--no-gui` to use the terminal `menuconfig` instead (works headless):
+
+```shell
+kspl edit --project-dir /path/to/your/spl
+kspl edit --project-dir /path/to/your/spl --no-gui
+```
+
 For more information on the available commands, run:
 
 ```shell

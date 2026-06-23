@@ -132,18 +132,24 @@ class KConfig:
 
         return ConfigurationData([ConfigElement(elem.type, elem.name, elem.value) for elem in elements if elem.type != ConfigElementType.MENU])
 
-    def menu_config(self) -> None:
+    def menu_config(self, gui: bool = True) -> None:
+        """Open a KConfig editor; ``gui`` picks the Tk ``guiconfig`` over the terminal ``menuconfig``."""
         if self.k_config_file:
             # The environment variable KCONFIG_CONFIG is used by kconfiglib to determine
             # the configuration file to load.
             os.environ["KCONFIG_CONFIG"] = self.k_config_file.absolute().as_posix()
 
         try:
-            from guiconfig import menuconfig
+            if gui:
+                from guiconfig import menuconfig
+            else:
+                from menuconfig import menuconfig
 
             menuconfig(self.config)
         except ImportError as e:
-            raise UserNotificationException("GUI functionality not available. Please ensure that your environment supports GUI operations.") from e
+            raise UserNotificationException(
+                "KConfig editor not available. Please ensure your environment supports the selected editor (GUI guiconfig / terminal menuconfig)."
+            ) from e
 
     def _collect_elements(self) -> list[EditableConfigElement]:
         elements: list[EditableConfigElement] = []

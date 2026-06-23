@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, BooleanOptionalAction, Namespace
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -19,6 +19,7 @@ class EditCommandConfig(DataClassDictMixin):
     )
     kconfig_model_file: Optional[Path] = field(default=None, metadata={"help": "KConfig model file (KConfig)."})
     kconfig_config_file: Optional[Path] = field(default=None, metadata={"help": "KConfig user configuration file (config.txt)."})
+    gui: bool = field(default=True, metadata={"help": "Use the guiconfig GUI editor; pass --no-gui to use the terminal menuconfig.", "action": BooleanOptionalAction})
 
     @classmethod
     def from_namespace(cls, namespace: Namespace) -> "EditCommandConfig":
@@ -34,6 +35,7 @@ class EditCommand(Command):
     def run(self, args: Namespace) -> int:
         self.logger.info(f"Running {self.name} with args {args}")
         cmd_config = EditCommandConfig.from_namespace(args)
+        gui = cmd_config.gui
         if cmd_config.kconfig_model_file is None:
             kconfig_data: KConfigData = SPLKConfigData(cmd_config.project_dir)
             variants = kconfig_data.get_variants()
@@ -42,11 +44,11 @@ class EditCommand(Command):
             if selected_variant is not None:
                 variant_data = kconfig_data.find_variant_config(selected_variant)
                 if variant_data is not None:
-                    variant_data.config.menu_config()
+                    variant_data.config.menu_config(gui=gui)
                 else:
                     self.logger.error(f"Variant {selected_variant} not found.")
         else:
-            KConfig(cmd_config.kconfig_model_file, cmd_config.kconfig_config_file).menu_config()
+            KConfig(cmd_config.kconfig_model_file, cmd_config.kconfig_config_file).menu_config(gui=gui)
         return 0
 
     def _select_variant(self, variant_names: list[str]) -> str | None:

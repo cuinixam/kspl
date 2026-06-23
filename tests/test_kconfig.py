@@ -1,5 +1,7 @@
 import os
+import sys
 import textwrap
+import types
 from pathlib import Path
 
 import pytest
@@ -396,3 +398,18 @@ def test_extract_elements_with_levels():
     assert 29 == len(kconfig.elements)
     # check how many elements of type MENU are there
     assert 10 == len([e for e in kconfig.elements if e.type == ConfigElementType.MENU])
+
+
+@pytest.mark.parametrize(("gui", "editor_module"), [(True, "guiconfig"), (False, "menuconfig")])
+def test_menu_config_uses_gui_or_terminal_editor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, gui: bool, editor_module: str) -> None:
+    feature_model_file = tmp_path / "KConfig"
+    feature_model_file.write_text('config FOO\n\tbool "Foo"\n\tdefault y\n')
+    captured: dict[str, object] = {}
+    fake_editor = types.ModuleType(editor_module)
+    monkeypatch.setattr(fake_editor, "menuconfig", lambda config: captured.update(config=config), raising=False)
+    monkeypatch.setitem(sys.modules, editor_module, fake_editor)
+
+    kconfig = KConfig(feature_model_file)
+    kconfig.menu_config(gui=gui)
+
+    assert captured["config"] is kconfig.config
