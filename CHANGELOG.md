@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.10.1 (2026-06-28)
+
+### Bug fixes
+
+- Gui exception thrown when closing the app in mac os ([`5e4bcc0`](https://github.com/cuinixam/kspl/commit/5e4bcc03b43d0e0789edc93f7527983223311360))
+
 ## v1.10.0 (2026-06-23)
 
 ### Features
