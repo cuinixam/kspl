@@ -69,6 +69,12 @@ class MainView(CTkView):
         self.trigger_edit_event = self.event_manager.create_event_trigger(KSplEvents.EDIT)
         self.trigger_refresh_event = self.event_manager.create_event_trigger(KSplEvents.REFRESH)
         self.root = customtkinter.CTk()
+        # Closing only stops the event loop; we deliberately never call destroy(). Tk
+        # dispatches <Configure> events while tearing the widget tree down, and
+        # customtkinter (through 6.0) redraws on them without checking the canvas still
+        # exists, raising "invalid command name ...ctkcanvas". This is a one-shot CLI
+        # window, so process exit reclaims it without invoking that teardown path.
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
         # Configure the main window
         self.root.title("K-SPL")
@@ -162,6 +168,11 @@ class MainView(CTkView):
 
         # Initial font application (create_tree_view applied defaults already, but we want consistency)
         self._apply_font_update()
+
+    def _on_close(self) -> None:
+        # Stop the loop only; destroy() would trigger the customtkinter teardown crash
+        # (see __init__). Process exit reclaims the window.
+        self.root.quit()
 
     def mainloop(self) -> None:
         self.root.mainloop()
