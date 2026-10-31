@@ -2,7 +2,7 @@
 
 ## Project Overview
 KSPL is a KConfig GUI for Software Product Lines (SPL) with multiple variants.
-It's built on Python 3.10+ with CustomTkinter for GUI, kconfiglib for parsing, and py-app-dev for CLI/MVP architecture.
+It's built on Python 3.11+ with CustomTkinter for GUI, kconfiglib for parsing, and py-app-dev for CLI/MVP architecture.
 
 ## Architecture & Key Components
 
@@ -79,7 +79,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs:
 
 1. **Lint** (`PreCommit` step) - Runs ruff linting/formatting via pre-commit
 2. **Commit Lint** - Enforces [conventional commits](https://www.conventionalcommits.org)
-3. **Test** - Matrix: Python 3.10 & 3.13 on Ubuntu and Windows
+3. **Test** - Matrix: Python 3.11 & 3.14 on Ubuntu and Windows
 4. **Release** - Semantic versioning with automatic PyPI publishing
 
 ### Code Quality
