@@ -8,7 +8,7 @@ pipeline:
   - step: CreateVEnv
     module: pypeline.steps.create_venv
     config:
-      python_version: 3.13
+      python_version: "3.13"
       python_package_manager: uv>=0
   - step: GenerateEnvSetupScript
     module: pypeline.steps.env_setup_script
