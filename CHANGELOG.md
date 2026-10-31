@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.10.2 (2026-10-31)
+
+### Bug fixes
+
+- Quote the python version in pypeline.yaml ([`5a90cad`](https://github.com/cuinixam/kspl/commit/5a90cad0caf63dea09609338c03a6a493d8061f2))
+
 ## v1.10.1 (2026-06-28)
 
 ### Bug fixes
